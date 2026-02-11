@@ -1,44 +1,25 @@
+mod desktop
+mod renderer
+
 [private]
 default:
   @just --list
 
-[private]
-setup:
-  @cd renderer && pnpm install
+fmt: desktop::fmt renderer::fmt
 
-assets:
-  @cd renderer && pnpm run build
+check: renderer::assets desktop::check renderer::check
 
-fmt: setup
-  @cd desktop && cargo fmt --all
-  @cd renderer && pnpm run fmt
-
-check: setup assets
-  @cd renderer && pnpm run check
-  @cd desktop && cargo check --all-targets --all-features
-  @cd desktop && cargo clippy --all-targets --all-features -- -D warnings
-
-test: setup assets
-  @cd desktop && cargo test --all-features --all-targets
+test: renderer::assets desktop::test
 
 verify: fmt check test
 
-clean:
-  @cd renderer && pnpm cache delete
-  @cd desktop && cargo clean
+clean: desktop::clean renderer::clean
 
-dev: setup
+dev:
   @bash -c ./scripts/dev.sh
 
-build: setup assets
-  @# Clean stale hashed assets from previous builds (Dioxus doesn't GC them)
-  @rm -rf desktop/target/dx/arto/release/macos/Arto.app/Contents/Resources/assets
-  @rm -rf desktop/target/dx/arto/bundle/macos/bundle/macos/Arto.app/Contents/Resources/assets
-  @cd desktop && dx bundle --release --macos
+build: renderer::assets desktop::build
 
-open:
-  @./desktop/target/dx/arto/bundle/macos/bundle/macos/Arto.app/Contents/MacOS/arto
+open: desktop::open
 
-install:
-  @rm -rf /Applications/Arto.app
-  @cp -af desktop/target/dx/arto/bundle/macos/bundle/macos/Arto.app /Applications/.
+install: desktop::install
