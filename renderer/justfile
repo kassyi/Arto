@@ -1,0 +1,21 @@
+[private]
+default:
+  @just --list
+
+[private]
+setup:
+  pnpm install
+
+assets: setup
+  pnpm run build
+
+fmt: setup
+  pnpm run fmt
+
+check: setup assets
+  pnpm run check
+
+verify: fmt check
+
+clean:
+  pnpm cache delete

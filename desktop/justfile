@@ -1,0 +1,32 @@
+[private]
+default:
+  @just --list
+
+fmt:
+  cargo fmt --all
+
+check:
+  cargo check --all-targets --all-features
+  cargo clippy --all-targets --all-features -- -D warnings
+
+test:
+  cargo test --all-features --all-targets
+  cargo test --doc --all-features
+
+verify: fmt check test
+
+clean:
+  cargo clean
+
+build:
+  @rm -rf target/dx/arto/release/macos/Arto.app/Contents/Resources/assets
+  @rm -rf target/dx/arto/bundle/macos/bundle/macos/Arto.app/Contents/Resources/assets
+  dx bundle --release --macos
+
+open:
+  ./target/dx/arto/bundle/macos/bundle/macos/Arto.app/Contents/MacOS/arto
+
+[confirm]
+install:
+  @rm -rf /Applications/Arto.app
+  @cp -af target/dx/arto/bundle/macos/bundle/macos/Arto.app /Applications/.
