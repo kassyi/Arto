@@ -7,7 +7,13 @@ export type ContentContextType =
   | { type: "general" }
   | { type: "link"; href: string }
   | { type: "image"; src: string; alt: string | null }
-  | { type: "code_block"; content: string; language: string | null }
+  | {
+      type: "code_block";
+      content: string;
+      language: string | null;
+      source_line: number | null;
+      source_line_end: number | null;
+    }
   | { type: "mermaid"; source: string }
   | { type: "math_block"; source: string };
 
@@ -19,6 +25,17 @@ export interface ContextMenuData {
   selected_text: string;
   source_line: number | null;
   source_line_end: number | null;
+  table_csv: string | null;
+  table_tsv: string | null;
+  table_source_line: number | null;
+  table_source_line_end: number | null;
+}
+
+interface TableData {
+  csv: string;
+  tsv: string;
+  sourceLine: number | null;
+  sourceLineEnd: number | null;
 }
 
 /**
@@ -247,8 +264,16 @@ function detectContext(target: HTMLElement): DetectedContext {
       const codeEl = current.querySelector("code");
       const content = codeEl?.textContent || "";
       const language = extractLanguage(codeEl);
+      const range = readSourceLineRange(current);
       return {
-        context: { type: "code_block", content, language },
+        context: {
+          type: "code_block",
+          content,
+          language,
+          source_line: range.start,
+          source_line_end: range.end,
+        },
+        // Return null to let selection-based line detection handle Copy Path
         sourceLine: null,
         sourceLineEnd: null,
       };
@@ -258,8 +283,15 @@ function detectContext(target: HTMLElement): DetectedContext {
     if (current.tagName === "CODE" && current.parentElement?.tagName === "PRE") {
       const content = current.textContent || "";
       const language = extractLanguage(current);
+      const range = readSourceLineRange(current.parentElement);
       return {
-        context: { type: "code_block", content, language },
+        context: {
+          type: "code_block",
+          content,
+          language,
+          source_line: range.start,
+          source_line_end: range.end,
+        },
         sourceLine: null,
         sourceLineEnd: null,
       };
@@ -301,6 +333,57 @@ function detectContext(target: HTMLElement): DetectedContext {
   }
 
   return { context: { type: "general" }, sourceLine: null, sourceLineEnd: null };
+}
+
+/**
+ * Detect if the right-click target is inside a table element.
+ * Returns table data (CSV/TSV) and source line range, or null if not in a table.
+ */
+function detectTable(target: HTMLElement): TableData | null {
+  const table = target.closest("table") as HTMLTableElement | null;
+  if (!table) return null;
+
+  const range = readSourceLineRange(table);
+  return {
+    csv: extractTableDelimited(table, ","),
+    tsv: extractTableDelimited(table, "\t"),
+    sourceLine: range.start,
+    sourceLineEnd: range.end,
+  };
+}
+
+/**
+ * Convert an HTML table to a delimited string (CSV or TSV).
+ * Follows RFC 4180 for CSV escaping: fields containing the delimiter,
+ * double quotes, or newlines are enclosed in double quotes, and internal
+ * double quotes are escaped by doubling them.
+ */
+function extractTableDelimited(table: HTMLTableElement, delimiter: string): string {
+  const rows: string[] = [];
+  for (const row of table.rows) {
+    const cells: string[] = [];
+    for (const cell of row.cells) {
+      const text = cell.textContent?.trim() ?? "";
+      cells.push(escapeDelimitedField(text, delimiter));
+    }
+    rows.push(cells.join(delimiter));
+  }
+  return rows.join("\n");
+}
+
+/**
+ * Escape a field value for delimited output (CSV/TSV).
+ */
+function escapeDelimitedField(value: string, delimiter: string): string {
+  if (
+    value.includes(delimiter) ||
+    value.includes('"') ||
+    value.includes("\n") ||
+    value.includes("\r")
+  ) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
 }
 
 /**
@@ -430,6 +513,7 @@ export function setup(sendToRust: (data: ContextMenuData) => void): void {
     // Position adjustment is handled by MutationObserver after menu renders
     const { context, sourceLine: blockLine, sourceLineEnd: blockLineEnd } = detectContext(target);
     const { hasSelection, selectedText } = getTextSelection();
+    const tableData = detectTable(target);
 
     // Block elements override selection-based line detection
     let sourceLine: number | null;
@@ -449,6 +533,10 @@ export function setup(sendToRust: (data: ContextMenuData) => void): void {
       selected_text: selectedText,
       source_line: sourceLine,
       source_line_end: sourceLineEnd,
+      table_csv: tableData?.csv ?? null,
+      table_tsv: tableData?.tsv ?? null,
+      table_source_line: tableData?.sourceLine ?? null,
+      table_source_line_end: tableData?.sourceLineEnd ?? null,
     };
 
     sendToRust(data);
@@ -457,3 +545,6 @@ export function setup(sendToRust: (data: ContextMenuData) => void): void {
   // Use capture phase to intercept before other handlers
   document.addEventListener("contextmenu", handler, true);
 }
+
+/** @internal */
+export const _internal = { extractTableDelimited, escapeDelimitedField };
