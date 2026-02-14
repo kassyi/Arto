@@ -6,6 +6,7 @@ mod config;
 mod drag;
 mod events;
 mod history;
+mod hooks;
 pub mod ipc;
 mod markdown;
 mod menu;
