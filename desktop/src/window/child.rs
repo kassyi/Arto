@@ -6,10 +6,12 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 use crate::assets::MAIN_STYLE;
+use crate::components::image_window::{generate_image_id, ImageWindow, ImageWindowProps};
+use crate::components::math_window::{generate_math_id, MathWindow, MathWindowProps};
 use crate::components::mermaid_window::{generate_diagram_id, MermaidWindow, MermaidWindowProps};
 use crate::theme::Theme;
 
-use super::index::build_mermaid_window_index;
+use super::index::{build_image_window_index, build_math_window_index, build_mermaid_window_index};
 use super::main::get_last_focused_window;
 
 struct ChildWindowEntry {
@@ -106,62 +108,43 @@ pub fn close_all_child_windows() {
     });
 }
 
-pub fn open_or_focus_mermaid_window(source: String, theme: Theme) {
-    let diagram_id = generate_diagram_id(&source);
-    let parent_id = window().id();
-
-    // Check if window already exists and can be focused
-    let needs_creation = CHILD_WINDOWS.with(|windows| {
+/// Try to focus an existing child window, or mark it as pending for creation.
+/// Returns `true` if a new window needs to be created.
+fn try_focus_or_mark_pending(child_id: &str, parent_id: WindowId) -> bool {
+    CHILD_WINDOWS.with(|windows| {
         let mut windows = windows.borrow_mut();
         windows.retain(|_, state| match state {
             ChildWindowState::Pending { .. } => true,
             ChildWindowState::Created(entry) => entry.is_alive(),
         });
 
-        match windows.get(&diagram_id) {
+        match windows.get(child_id) {
             Some(ChildWindowState::Created(entry)) => !entry.focus(),
             Some(ChildWindowState::Pending { .. }) => false,
             None => {
-                windows.insert(diagram_id.clone(), ChildWindowState::Pending { parent_id });
+                windows.insert(
+                    child_id.to_string(),
+                    ChildWindowState::Pending { parent_id },
+                );
                 true
             }
         }
-    });
-
-    if needs_creation {
-        dioxus_core::spawn(create_and_register_mermaid_window(
-            source, diagram_id, theme, parent_id,
-        ));
-    }
+    })
 }
 
-async fn create_and_register_mermaid_window(
-    source: String,
-    diagram_id: String,
-    theme: Theme,
+/// Register a newly created child window, or close it if the pending state was removed.
+async fn create_and_register_child_window(
+    child_id: String,
+    dom: VirtualDom,
+    config: Config,
     parent_id: WindowId,
 ) {
-    let dom = VirtualDom::new_with_props(
-        MermaidWindow,
-        MermaidWindowProps {
-            source,
-            diagram_id: diagram_id.clone(),
-            theme,
-        },
-    );
-
-    let config = Config::new()
-        .with_menu(None)
-        .with_window(WindowBuilder::new().with_title("Mermaid Viewer"))
-        .with_custom_head(indoc::formatdoc! {r#"<link rel="stylesheet" href="{MAIN_STYLE}">"#})
-        .with_custom_index(build_mermaid_window_index(theme));
-
     let pending = window().new_window(dom, config);
     let ctx = pending.await;
     let should_register = CHILD_WINDOWS.with(|windows| {
         let windows = windows.borrow();
         windows
-            .get(&diagram_id)
+            .get(&child_id)
             .is_some_and(|state| matches!(state, ChildWindowState::Pending { .. }))
     });
 
@@ -172,7 +155,7 @@ async fn create_and_register_mermaid_window(
 
     CHILD_WINDOWS.with(|windows| {
         windows.borrow_mut().insert(
-            diagram_id,
+            child_id,
             ChildWindowState::Created(ChildWindowEntry {
                 handle: std::rc::Rc::downgrade(&ctx),
                 window_id: ctx.window.id(),
@@ -180,4 +163,80 @@ async fn create_and_register_mermaid_window(
             }),
         );
     });
+}
+
+pub fn open_or_focus_mermaid_window(source: String, theme: Theme) {
+    let diagram_id = generate_diagram_id(&source);
+    let parent_id = window().id();
+
+    if try_focus_or_mark_pending(&diagram_id, parent_id) {
+        let dom = VirtualDom::new_with_props(
+            MermaidWindow,
+            MermaidWindowProps {
+                source,
+                diagram_id: diagram_id.clone(),
+                theme,
+            },
+        );
+        let config = Config::new()
+            .with_menu(None)
+            .with_window(WindowBuilder::new().with_title("Mermaid Viewer"))
+            .with_custom_head(indoc::formatdoc! {r#"<link rel="stylesheet" href="{MAIN_STYLE}">"#})
+            .with_custom_index(build_mermaid_window_index(theme));
+
+        dioxus_core::spawn(create_and_register_child_window(
+            diagram_id, dom, config, parent_id,
+        ));
+    }
+}
+
+pub fn open_or_focus_math_window(source: String, theme: Theme) {
+    let math_id = generate_math_id(&source);
+    let parent_id = window().id();
+
+    if try_focus_or_mark_pending(&math_id, parent_id) {
+        let dom = VirtualDom::new_with_props(
+            MathWindow,
+            MathWindowProps {
+                source,
+                math_id: math_id.clone(),
+                theme,
+            },
+        );
+        let config = Config::new()
+            .with_menu(None)
+            .with_window(WindowBuilder::new().with_title("Math Viewer"))
+            .with_custom_head(indoc::formatdoc! {r#"<link rel="stylesheet" href="{MAIN_STYLE}">"#})
+            .with_custom_index(build_math_window_index(theme));
+
+        dioxus_core::spawn(create_and_register_child_window(
+            math_id, dom, config, parent_id,
+        ));
+    }
+}
+
+pub fn open_or_focus_image_window(src: String, alt: Option<String>, theme: Theme) {
+    let image_id = generate_image_id(&src);
+    let parent_id = window().id();
+
+    if try_focus_or_mark_pending(&image_id, parent_id) {
+        let dom = VirtualDom::new_with_props(
+            ImageWindow,
+            ImageWindowProps {
+                src,
+                alt,
+                image_id: image_id.clone(),
+                theme,
+            },
+        );
+        let config = Config::new()
+            .with_menu(None)
+            .with_window(WindowBuilder::new().with_title("Image Viewer"))
+            .with_custom_head(indoc::formatdoc! {r#"<link rel="stylesheet" href="{MAIN_STYLE}">"#})
+            .with_custom_index(build_image_window_index(theme));
+
+        dioxus_core::spawn(create_and_register_child_window(
+            image_id, dom, config, parent_id,
+        ));
+    }
 }
