@@ -5,7 +5,14 @@ import * as markdownViewer from "./markdown-viewer";
 import * as syntaxHighlighter from "./syntax-highlighter";
 import * as mermaidRenderer from "./mermaid-renderer";
 import { renderCoordinator } from "./render-coordinator";
-import { setup as setupContextMenu, restoreSelection } from "./context-menu-handler";
+import {
+  setup as setupContextMenu,
+  restoreSelection,
+  cleanupElementReferences,
+  getSavedMermaidElement,
+  getSavedMathElement,
+} from "./context-menu-handler";
+import { rasterizeMathBlock, rasterizeMermaidBlock } from "./special-block-rasterizer";
 import * as findInPage from "./find-in-page";
 
 // Declare global Arto namespace
@@ -22,6 +29,12 @@ declare global {
        *  SVG images are rendered at 2x scale for Retina quality.
        *  Raster images use 1x scale to preserve original resolution. */
       rasterizeImage: (src: string, opaque: boolean) => Promise<string | null>;
+      /** Rasterize a Math block (KaTeX) to PNG data URL via html2canvas. */
+      rasterizeMathBlock: (opaque: boolean) => Promise<string | null>;
+      /** Rasterize a Mermaid SVG to PNG data URL. */
+      rasterizeMermaidBlock: (opaque: boolean) => Promise<string | null>;
+      /** Cleanup saved element references when context menu closes. */
+      cleanupElementReferences: () => void;
       search: {
         setup: typeof findInPage.setup;
         find: typeof findInPage.find;
@@ -94,7 +107,12 @@ export function init(): void {
             const canvas = document.createElement("canvas");
             canvas.width = scaledWidth;
             canvas.height = scaledHeight;
-            const ctx = canvas.getContext("2d")!;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) {
+              console.error("Failed to get 2D canvas context");
+              resolve(null);
+              return;
+            }
             ctx.scale(scale, scale);
             if (opaque) {
               const bgColor =
@@ -113,6 +131,23 @@ export function init(): void {
         img.src = src;
       });
     },
+    rasterizeMathBlock: async (opaque: boolean): Promise<string | null> => {
+      const element = getSavedMathElement();
+      if (!element) {
+        console.error("No saved Math element found");
+        return null;
+      }
+      return rasterizeMathBlock(element, opaque);
+    },
+    rasterizeMermaidBlock: async (opaque: boolean): Promise<string | null> => {
+      const element = getSavedMermaidElement();
+      if (!element) {
+        console.error("No saved Mermaid element found");
+        return null;
+      }
+      return rasterizeMermaidBlock(element, opaque);
+    },
+    cleanupElementReferences,
     search: {
       setup: findInPage.setup,
       find: findInPage.find,

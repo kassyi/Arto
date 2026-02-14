@@ -1,3 +1,4 @@
+import html2canvas from "html2canvas";
 import iconCopy from "@tabler/icons/outline/copy.svg?raw";
 import iconCheck from "@tabler/icons/outline/check.svg?raw";
 import iconX from "@tabler/icons/outline/x.svg?raw";
@@ -32,12 +33,16 @@ function addCopyButton(pre: HTMLPreElement): void {
   // Make pre element relative for absolute positioning of button
   pre.style.position = "relative";
 
-  // Check if this is a Mermaid diagram
+  // Check if this block supports image copy
   const isMermaid = pre.classList.contains("preprocessed-mermaid");
+  const isMath =
+    pre.classList.contains("preprocessed-math") ||
+    pre.classList.contains("preprocessed-math-display");
+  const hasImageCopy = isMermaid || isMath;
 
   // Create text copy button
   const textButton = document.createElement("button");
-  textButton.className = isMermaid ? "copy-button copy-button-text" : "copy-button";
+  textButton.className = hasImageCopy ? "copy-button copy-button-text" : "copy-button";
   textButton.setAttribute("aria-label", "Copy code to clipboard");
   textButton.innerHTML = getCopyIcon();
 
@@ -51,22 +56,28 @@ function addCopyButton(pre: HTMLPreElement): void {
   // Add button to pre element
   pre.appendChild(textButton);
 
-  // Add image copy button for Mermaid
+  // Add image copy button for Mermaid and Math
   if (isMermaid) {
-    addImageCopyButton(pre);
+    addImageCopyButton(pre, "mermaid");
+  } else if (isMath) {
+    addImageCopyButton(pre, "math");
   }
 }
 
-function addImageCopyButton(pre: HTMLPreElement): void {
+function addImageCopyButton(pre: HTMLPreElement, type: "mermaid" | "math"): void {
   const button = document.createElement("button");
   button.className = "copy-button copy-button-image";
-  button.setAttribute("aria-label", "Copy diagram as image");
+  button.setAttribute("aria-label", "Copy as image");
   button.innerHTML = getPhotoIcon();
 
   button.addEventListener("click", async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    await copyMermaidAsImage(pre, button);
+    if (type === "mermaid") {
+      await copyMermaidAsImage(pre, button);
+    } else {
+      await copyMathAsImage(pre, button);
+    }
   });
 
   pre.appendChild(button);
@@ -141,6 +152,47 @@ function getErrorIcon(): string {
 
 function getPhotoIcon(): string {
   return iconPhoto;
+}
+
+async function copyMathAsImage(pre: HTMLPreElement, button: HTMLButtonElement): Promise<void> {
+  try {
+    const bgColor = getComputedStyle(document.body).getPropertyValue("--bg-color").trim();
+
+    // Ensure fonts are loaded before rasterization so KaTeX renders correctly.
+    // This must happen before html2canvas because onclone is not awaited.
+    await document.fonts.ready;
+
+    const canvas = await html2canvas(pre, {
+      scale: 2,
+      backgroundColor: bgColor || "#ffffff",
+      logging: false,
+      onclone: (clonedDoc) => {
+        // Hide copy buttons so they don't appear in the exported image
+        for (const btn of clonedDoc.querySelectorAll<HTMLElement>(".copy-button")) {
+          btn.style.display = "none";
+        }
+      },
+    });
+
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((b) => {
+        if (b) resolve(b);
+        else reject(new Error("Failed to create blob"));
+      }, "image/png");
+    });
+
+    const dataUrl = await blobToDataUrl(blob);
+
+    if (window.rustCopyImage) {
+      window.rustCopyImage(dataUrl);
+      showSuccessFeedback(button);
+    } else {
+      throw new Error("Rust clipboard handler not available");
+    }
+  } catch (error) {
+    console.error("Failed to copy math as image", error);
+    showErrorFeedback(button);
+  }
 }
 
 async function copyMermaidAsImage(pre: HTMLPreElement, button: HTMLButtonElement): Promise<void> {

@@ -236,6 +236,7 @@ function detectContext(target: HTMLElement): DetectedContext {
   while (current && !current.classList.contains("markdown-body")) {
     // Check for mermaid diagram
     if (current.classList.contains("preprocessed-mermaid")) {
+      savedMermaidElement = current;
       const source = current.dataset.originalContent || "";
       const range = readSourceLineRange(current);
       return {
@@ -250,6 +251,7 @@ function detectContext(target: HTMLElement): DetectedContext {
       current.classList.contains("preprocessed-math") ||
       current.classList.contains("preprocessed-math-display")
     ) {
+      savedMathElement = current;
       const source = current.dataset.originalContent || "";
       const range = readSourceLineRange(current);
       return {
@@ -375,8 +377,9 @@ function extractTableDelimited(table: HTMLTableElement, delimiter: string): stri
  * Escape a field value for delimited output (CSV/TSV).
  *
  * In addition to RFC 4180 quoting (delimiter, quotes, newlines),
- * fields starting with `=`, `+`, `-`, or `@` are prefixed with a tab
- * character to prevent formula injection when pasted into spreadsheets.
+ * fields starting with `=`, `+`, `-`, or `@` are wrapped in quotes with
+ * a leading tab character inside to prevent formula injection when pasted
+ * into spreadsheets.
  */
 function escapeDelimitedField(value: string, delimiter: string): string {
   // Prevent spreadsheet formula injection (CSV Injection / DDE attacks).
@@ -418,6 +421,10 @@ function extractLanguage(codeEl: HTMLElement | null): string | null {
 
 // Saved selection range for restoration after menu closes
 let savedRange: Range | null = null;
+
+// Saved element references for special blocks (Mermaid/Math)
+let savedMermaidElement: HTMLElement | null = null;
+let savedMathElement: HTMLElement | null = null;
 
 /**
  * Get the current text selection and save the range for later restoration
@@ -558,6 +565,28 @@ export function setup(sendToRust: (data: ContextMenuData) => void): void {
 
   // Use capture phase to intercept before other handlers
   document.addEventListener("contextmenu", handler, true);
+}
+
+/**
+ * Cleanup saved element references when context menu closes.
+ */
+export function cleanupElementReferences(): void {
+  savedMermaidElement = null;
+  savedMathElement = null;
+}
+
+/**
+ * Get saved Mermaid element for rasterization.
+ */
+export function getSavedMermaidElement(): HTMLElement | null {
+  return savedMermaidElement;
+}
+
+/**
+ * Get saved Math element for rasterization.
+ */
+export function getSavedMathElement(): HTMLElement | null {
+  return savedMathElement;
 }
 
 /** @internal */
