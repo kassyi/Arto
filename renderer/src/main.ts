@@ -46,6 +46,12 @@ declare global {
         scrollToPinnedMatch: typeof findInPage.scrollToPinnedMatch;
       };
     };
+    /** Called from JavaScript when Math block click is detected */
+    handleMathWindowOpen?: (source: string) => void;
+    /** Called from JavaScript when Mermaid block click is detected */
+    handleMermaidWindowOpen?: (source: string) => void;
+    /** Called from JavaScript when Image block click is detected */
+    handleImageWindowOpen?: (src: string, alt: string | null) => void;
   }
 }
 
@@ -169,5 +175,12 @@ export function init(): void {
   setCurrentTheme(getCurrentTheme());
 }
 
-// Re-export mermaid window functions
+// Re-export special window functions
 export { initMermaidWindow } from "./mermaid-window-controller";
+export { initMathWindow, setMathTheme, copyMathAsImage } from "./math-window-controller";
+export {
+  initImageWindow,
+  toggleImageFitMode,
+  getImageDimensions,
+  copyImageToClipboard,
+} from "./image-window-controller";
