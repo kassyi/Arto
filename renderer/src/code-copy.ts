@@ -3,6 +3,13 @@ import iconCheck from "@tabler/icons/outline/check.svg?raw";
 import iconX from "@tabler/icons/outline/x.svg?raw";
 import iconPhoto from "@tabler/icons/outline/photo.svg?raw";
 
+declare global {
+  interface Window {
+    rustCopyText?: (text: string) => void;
+    rustCopyImage?: (dataUrl: string) => void;
+  }
+}
+
 /**
  * Add copy buttons to code blocks
  */
@@ -68,8 +75,13 @@ function addImageCopyButton(pre: HTMLPreElement): void {
 async function copyToClipboard(pre: HTMLPreElement, button: HTMLButtonElement): Promise<void> {
   try {
     const content = getContentToCopy(pre);
-    await navigator.clipboard.writeText(content);
-    showSuccessFeedback(button);
+
+    if (window.rustCopyText) {
+      window.rustCopyText(content);
+      showSuccessFeedback(button);
+    } else {
+      throw new Error("Rust clipboard handler not available");
+    }
   } catch (error) {
     console.error("Failed to copy text to clipboard", error);
     showErrorFeedback(button);
@@ -132,24 +144,22 @@ function getPhotoIcon(): string {
 }
 
 async function copyMermaidAsImage(pre: HTMLPreElement, button: HTMLButtonElement): Promise<void> {
-  if (!navigator.clipboard?.write) {
-    showErrorFeedback(button);
-    return;
-  }
-
   try {
     const svg = findSvgElement(pre);
     const dimensions = getSvgDimensions(svg);
     const canvas = createCanvasFromSvg(svg, dimensions);
     const svgDataUrl = convertSvgToDataUrl(svg, dimensions);
 
-    // Create blob promise synchronously to preserve user gesture context
-    const blobPromise = createBlobPromise(canvas, svgDataUrl);
+    // Rasterize SVG to PNG via canvas
+    const blob = await createBlobPromise(canvas, svgDataUrl);
+    const dataUrl = await blobToDataUrl(blob);
 
-    // Write to clipboard with promise (WebKit-compatible approach)
-    await navigator.clipboard.write([new ClipboardItem({ "image/png": blobPromise })]);
-
-    showSuccessFeedback(button);
+    if (window.rustCopyImage) {
+      window.rustCopyImage(dataUrl);
+      showSuccessFeedback(button);
+    } else {
+      throw new Error("Rust clipboard handler not available");
+    }
   } catch (error) {
     console.error("Failed to copy image to clipboard", error);
     showErrorFeedback(button);
