@@ -105,23 +105,23 @@ function getContentToCopy(pre: HTMLPreElement): string {
 }
 
 function showSuccessFeedback(button: HTMLButtonElement): void {
+  const originalIcon = button.innerHTML;
   button.innerHTML = getCheckIcon();
   button.classList.add("copied");
 
-  // Reset after 2 seconds
   setTimeout(() => {
-    button.innerHTML = getCopyIcon();
+    button.innerHTML = originalIcon;
     button.classList.remove("copied");
   }, 2000);
 }
 
 function showErrorFeedback(button: HTMLButtonElement): void {
+  const originalIcon = button.innerHTML;
   button.innerHTML = getErrorIcon();
   button.classList.add("error");
 
-  // Reset after 2 seconds
   setTimeout(() => {
-    button.innerHTML = getCopyIcon();
+    button.innerHTML = originalIcon;
     button.classList.remove("error");
   }, 2000);
 }
