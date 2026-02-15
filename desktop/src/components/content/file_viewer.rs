@@ -408,10 +408,7 @@ fn use_math_window_handler() {
                             let state = use_context::<AppState>();
                             let theme = *state.current_theme.read();
                             tracing::info!("Opening math window for LaTeX");
-                            crate::window::child::open_or_focus_math_window(
-                                source.to_string(),
-                                theme,
-                            );
+                            crate::window::open_or_focus_math_window(source.to_string(), theme);
                         }
                     }
                 }
@@ -441,11 +438,7 @@ fn use_image_window_handler() {
                             let state = use_context::<AppState>();
                             let theme = *state.current_theme.read();
                             tracing::info!("Opening image window");
-                            crate::window::child::open_or_focus_image_window(
-                                src.to_string(),
-                                alt,
-                                theme,
-                            );
+                            crate::window::open_or_focus_image_window(src.to_string(), alt, theme);
                         }
                     }
                 }
