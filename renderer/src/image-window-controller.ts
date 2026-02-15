@@ -131,12 +131,12 @@ export class ImageWindowController extends BaseViewerController {
     if (!canvas || this.#fitMode === "actual") return;
 
     const padding = 40;
-    const availableWidth = canvas.clientWidth - padding * 2;
-    const availableHeight = canvas.clientHeight - padding * 2;
+    const availableWidth = Math.max(canvas.clientWidth - padding * 2, 1);
+    const availableHeight = Math.max(canvas.clientHeight - padding * 2, 1);
 
     const scaleX = availableWidth / this.#naturalWidth;
     const scaleY = availableHeight / this.#naturalHeight;
-    const scale = Math.min(scaleX, scaleY, 1);
+    const scale = Math.max(0.1, Math.min(scaleX, scaleY, 1));
 
     this.state.scale = scale;
 
@@ -211,14 +211,24 @@ export async function copyImageToClipboard(): Promise<void> {
   }
 
   try {
-    // Use html2canvas to rasterize the image (same as code-copy.ts pattern)
-    const html2canvas = (await import("html2canvas")).default;
+    // Draw image at its natural size to avoid OOM when zoomed in.
+    // html2canvas would rasterize the zoomed container, creating huge canvases.
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
 
-    const canvas = await html2canvas(container, {
-      scale: 2,
-      backgroundColor:
-        getComputedStyle(document.body).getPropertyValue("--bg-color").trim() || "#ffffff",
-    });
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      throw new Error("Failed to get canvas 2d context");
+    }
+
+    // Fill with background color for transparent images
+    const bgColor =
+      getComputedStyle(document.body).getPropertyValue("--bg-color").trim() || "#ffffff";
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.drawImage(image, 0, 0);
 
     // Convert canvas to data URL
     const dataUrl = canvas.toDataURL("image/png");
