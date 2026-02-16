@@ -303,7 +303,18 @@ pub fn is_close_action(event: &MenuEvent) -> bool {
     )
 }
 
-/// Handle menu events that don't require app state
+/// Handle menu events that do NOT require per-window AppState.
+///
+/// # Handled events
+/// - `NewWindow`: Creates a new window (no state needed)
+/// - `NewTab` (no windows exist): Creates a window as fallback
+/// - `Preferences`: Declined here (requires per-window state), returns `false`
+/// - `CloseAllChildWindows`: Uses window manager API
+/// - `CloseAllWindows`: Uses window manager API
+/// - `GoToHomepage`: Opens URL in external browser
+///
+/// # Returns
+/// `true` if the event was fully handled, `false` if it needs state-dependent handling.
 pub fn handle_menu_event_global(event: &MenuEvent) -> bool {
     let menu_id = event.id().0.as_ref();
 
@@ -350,8 +361,25 @@ pub fn handle_menu_event_global(event: &MenuEvent) -> bool {
     true
 }
 
-/// Handle menu events that require app state (must be called from component context)
-/// Only handles the event if the current window is focused
+/// Handle menu events that require per-window AppState.
+///
+/// Only processes events for the currently focused window.
+///
+/// # Handled events
+/// - `About`: Opens preferences page on About tab
+/// - `Preferences`: Opens preferences page
+/// - `NewTab`: Adds an empty tab to current window
+/// - `Open`: Opens file picker for markdown files
+/// - `OpenDirectory`: Opens directory picker
+/// - `CloseTab` / `CloseAllTabs` / `CloseWindow`: Tab/window management
+/// - `ToggleSidebar`: Toggles sidebar visibility
+/// - `ActualSize` / `ZoomIn` / `ZoomOut`: Zoom controls
+/// - `GoBack` / `GoForward`: Navigation history
+/// - `RevealInFinder` / `CopyFilePath`: File operations
+/// - `Find` / `FindNext` / `FindPrevious`: Search operations
+///
+/// # Returns
+/// `true` if the event was handled, `false` otherwise.
 pub fn handle_menu_event_with_state(event: &MenuEvent, state: &mut AppState) -> bool {
     // Check if current window is focused
     if !window().is_focused() {
