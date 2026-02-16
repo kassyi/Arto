@@ -38,6 +38,8 @@ pub fn FileViewer(file: PathBuf) -> Element {
     use_file_watcher(file.clone(), state);
     use_link_click_handler(file.clone(), state);
     use_mermaid_window_handler();
+    use_math_window_handler();
+    use_image_window_handler();
     use_clipboard_handlers();
     use_context_menu_handler(file.clone(), base_dir);
 
@@ -381,6 +383,62 @@ fn use_mermaid_window_handler() {
                             let theme = *state.current_theme.read();
                             tracing::info!("Opening mermaid window for diagram");
                             crate::window::open_or_focus_mermaid_window(source.to_string(), theme);
+                        }
+                    }
+                }
+            }
+        });
+    });
+}
+
+/// Hook to setup Math window open handler
+fn use_math_window_handler() {
+    use_effect(|| {
+        let mut eval_provider = document::eval(indoc::indoc! {r#"
+            window.handleMathWindowOpen = (source) => {
+                dioxus.send({ type: "open_math_window", source: source });
+            };
+        "#});
+
+        spawn(async move {
+            while let Ok(data) = eval_provider.recv::<serde_json::Value>().await {
+                if let Some(msg_type) = data.get("type").and_then(|v| v.as_str()) {
+                    if msg_type == "open_math_window" {
+                        if let Some(source) = data.get("source").and_then(|v| v.as_str()) {
+                            let state = use_context::<AppState>();
+                            let theme = *state.current_theme.read();
+                            tracing::info!("Opening math window for LaTeX");
+                            crate::window::open_or_focus_math_window(source.to_string(), theme);
+                        }
+                    }
+                }
+            }
+        });
+    });
+}
+
+/// Hook to setup Image window open handler
+fn use_image_window_handler() {
+    use_effect(|| {
+        let mut eval_provider = document::eval(indoc::indoc! {r#"
+            window.handleImageWindowOpen = (src, alt) => {
+                dioxus.send({ type: "open_image_window", src: src, alt: alt });
+            };
+        "#});
+
+        spawn(async move {
+            while let Ok(data) = eval_provider.recv::<serde_json::Value>().await {
+                if let Some(msg_type) = data.get("type").and_then(|v| v.as_str()) {
+                    if msg_type == "open_image_window" {
+                        if let Some(src) = data.get("src").and_then(|v| v.as_str()) {
+                            let alt = data
+                                .get("alt")
+                                .and_then(|v| v.as_str())
+                                .map(|s| s.to_string());
+                            let state = use_context::<AppState>();
+                            let theme = *state.current_theme.read();
+                            tracing::info!("Opening image window");
+                            crate::window::open_or_focus_image_window(src.to_string(), alt, theme);
                         }
                     }
                 }

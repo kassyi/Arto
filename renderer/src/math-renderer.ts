@@ -116,6 +116,19 @@ function renderBlockMath(container: Element): void {
       });
       element.innerHTML = html;
       element.dataset.rendered = "true";
+
+      // Skip if listeners already attached (guard against re-registration)
+      if (element.dataset.listenersAttached === "true") continue;
+      element.dataset.listenersAttached = "true";
+
+      // Make math block clickable to open viewer (single-click, like Mermaid)
+      // Hover styling (cursor, opacity, outline) is handled by CSS via
+      // pre.preprocessed-math:hover in math-window.css
+      element.addEventListener("click", () => {
+        if (typeof window.handleMathWindowOpen === "function") {
+          window.handleMathWindowOpen(content);
+        }
+      });
     } catch (error) {
       console.error("Failed to render math block:", error);
       element.style.color = "red";
