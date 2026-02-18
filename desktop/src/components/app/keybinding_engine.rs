@@ -118,9 +118,11 @@ pub(super) fn setup_keybinding_engine(
                             continue;
                         }
                         if action == Action::Cancel {
-                            // Cancel chain: reset engine state + return focus to content + close search + clear content cursor
+                            // Cancel chain: reset engine state + return focus to content + close overlays + close search + clear content cursor
                             engine.read().borrow_mut().reset();
                             state.focused_panel.set(crate::state::FocusedPanel::Content);
+                            state.left_hover_active.set(false);
+                            state.right_hover_active.set(false);
                             if *state.search_open.read() {
                                 state.toggle_search();
                             }

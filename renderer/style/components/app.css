@@ -76,6 +76,67 @@
   }
 }
 
+/* ========================================
+   Sidebar Hover Trigger & Overlay
+   ======================================== */
+
+/* Transparent hover zones at window edges (unpinned sidebars) */
+.sidebar-hover-trigger {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  z-index: var(--z-dropdown);
+}
+
+.sidebar-hover-trigger.left {
+  left: 0;
+}
+
+.sidebar-hover-trigger.right {
+  right: 0;
+}
+
+/* Overlay wrapper for unpinned sidebars */
+.sidebar-overlay-wrapper {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: var(--z-dropdown);
+  pointer-events: none;
+}
+
+.sidebar-overlay-wrapper.visible {
+  pointer-events: auto;
+}
+
+.sidebar-overlay-wrapper.left {
+  left: 0;
+}
+
+.sidebar-overlay-wrapper.right {
+  right: 0;
+}
+
+/* Slide animation for overlay sidebars */
+.sidebar-overlay-wrapper.left .left-sidebar {
+  transform: translateX(-100%);
+  transition: transform var(--transition-normal) ease;
+}
+
+.sidebar-overlay-wrapper.left.visible .left-sidebar {
+  transform: translateX(0);
+}
+
+.sidebar-overlay-wrapper.right .right-sidebar {
+  transform: translateX(100%);
+  transition: transform var(--transition-normal) ease;
+}
+
+.sidebar-overlay-wrapper.right.visible .right-sidebar {
+  transform: translateX(0);
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
