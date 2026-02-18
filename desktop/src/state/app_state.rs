@@ -61,7 +61,7 @@ pub struct AppState {
     pub current_theme: Signal<Theme>,
     pub zoom_level: Signal<f64>,
     pub sidebar: Signal<Sidebar>,
-    pub right_sidebar_open: Signal<bool>,
+    pub right_sidebar_pinned: Signal<bool>,
     pub right_sidebar_width: Signal<f64>,
     pub right_sidebar_tab: Signal<RightSidebarTab>,
     pub right_sidebar_zoom_level: Signal<f64>,
@@ -98,6 +98,12 @@ pub struct AppState {
     pub toc_cursor: Signal<Option<usize>>,
     /// Keyboard cursor position in the Quick Access list (index into bookmarks).
     pub quick_access_cursor: Signal<Option<usize>>,
+    /// Whether the left sidebar overlay is currently shown (hover/focus triggered).
+    /// Transient UI state — not persisted.
+    pub left_hover_active: Signal<bool>,
+    /// Whether the right sidebar overlay is currently shown (hover/focus triggered).
+    /// Transient UI state — not persisted.
+    pub right_hover_active: Signal<bool>,
 }
 
 impl AppState {
@@ -110,7 +116,7 @@ impl AppState {
             current_theme: Signal::new(theme),
             zoom_level: Signal::new(1.0),
             sidebar: Signal::new(Sidebar::default()),
-            right_sidebar_open: Signal::new(false),
+            right_sidebar_pinned: Signal::new(false),
             right_sidebar_width: Signal::new(DEFAULT_RIGHT_SIDEBAR_WIDTH),
             right_sidebar_tab: Signal::new(RightSidebarTab::default()),
             right_sidebar_zoom_level: Signal::new(1.0),
@@ -132,6 +138,8 @@ impl AppState {
             sidebar_cursor: Signal::new(None),
             toc_cursor: Signal::new(None),
             quick_access_cursor: Signal::new(None),
+            left_hover_active: Signal::new(false),
+            right_hover_active: Signal::new(false),
         }
     }
 }
@@ -190,10 +198,13 @@ impl AppState {
         }
     }
 
-    /// Toggle right sidebar visibility
+    /// Toggle right sidebar between pinned (flex layout) and unpinned (overlay/hover).
+    ///
+    /// - Pinned: visible in flex layout, pushes content aside
+    /// - Unpinned: accessible via hover as an overlay
     pub fn toggle_right_sidebar(&mut self) {
-        let new_state = !*self.right_sidebar_open.read();
-        self.right_sidebar_open.set(new_state);
+        let was_pinned = *self.right_sidebar_pinned.read();
+        self.right_sidebar_pinned.set(!was_pinned);
     }
 
     /// Set right sidebar width

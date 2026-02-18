@@ -20,8 +20,8 @@ fn default_right_sidebar_zoom_level() -> f64 {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RightSidebarConfig {
-    /// Whether right sidebar panel is open by default
-    pub default_open: bool,
+    /// Whether right sidebar panel is pinned to the layout by default
+    pub default_pinned: bool,
     /// Default right sidebar panel width in pixels
     #[serde(default = "default_right_sidebar_width")]
     pub default_width: f64,
@@ -40,7 +40,7 @@ pub struct RightSidebarConfig {
 impl Default for RightSidebarConfig {
     fn default() -> Self {
         Self {
-            default_open: false,
+            default_pinned: false,
             default_width: default_right_sidebar_width(),
             default_tab: RightSidebarTab::default(),
             default_zoom_level: default_right_sidebar_zoom_level(),

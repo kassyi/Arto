@@ -50,12 +50,12 @@ impl From<LogicalSize<u32>> for Size {
 pub struct PersistedState {
     pub directory: Option<PathBuf>,
     pub theme: Theme,
-    pub sidebar_open: bool,
+    pub sidebar_pinned: bool,
     pub sidebar_width: f64,
     pub sidebar_show_all_files: bool,
     #[serde(default = "default_zoom_level")]
     pub sidebar_zoom_level: f64,
-    pub right_sidebar_open: bool,
+    pub right_sidebar_pinned: bool,
     pub right_sidebar_width: f64,
     pub right_sidebar_tab: RightSidebarTab,
     #[serde(default = "default_zoom_level")]
@@ -75,11 +75,11 @@ impl Default for PersistedState {
         Self {
             directory: None,
             theme: Theme::default(),
-            sidebar_open: false,
+            sidebar_pinned: false,
             sidebar_width: 280.0,
             sidebar_show_all_files: false,
             sidebar_zoom_level: 1.0,
-            right_sidebar_open: false,
+            right_sidebar_pinned: false,
             right_sidebar_width: DEFAULT_RIGHT_SIDEBAR_WIDTH,
             right_sidebar_tab: RightSidebarTab::default(),
             right_sidebar_zoom_level: 1.0,
@@ -96,11 +96,11 @@ impl From<&AppState> for PersistedState {
         Self {
             directory: sidebar.root_directory.clone(),
             theme: *state.current_theme.read(),
-            sidebar_open: sidebar.open,
+            sidebar_pinned: sidebar.pinned,
             sidebar_width: sidebar.width,
             sidebar_show_all_files: sidebar.show_all_files,
             sidebar_zoom_level: sidebar.zoom_level,
-            right_sidebar_open: *state.right_sidebar_open.read(),
+            right_sidebar_pinned: *state.right_sidebar_pinned.read(),
             right_sidebar_width: *state.right_sidebar_width.read(),
             right_sidebar_tab: *state.right_sidebar_tab.read(),
             right_sidebar_zoom_level: *state.right_sidebar_zoom_level.read(),
@@ -154,11 +154,11 @@ impl PersistedState {
         tracing::debug!(
             path = %path.display(),
             theme = ?self.theme,
-            sidebar_open = self.sidebar_open,
+            sidebar_pinned = self.sidebar_pinned,
             sidebar_width = self.sidebar_width,
             sidebar_show_all_files = self.sidebar_show_all_files,
             sidebar_zoom_level = self.sidebar_zoom_level,
-            right_sidebar_open = self.right_sidebar_open,
+            right_sidebar_pinned = self.right_sidebar_pinned,
             right_sidebar_width = self.right_sidebar_width,
             right_sidebar_tab = ?self.right_sidebar_tab,
             right_sidebar_zoom_level = self.right_sidebar_zoom_level,
@@ -184,5 +184,100 @@ impl PersistedState {
                 tracing::error!(?e, "Failed to serialize persisted state");
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use indoc::indoc;
+
+    #[test]
+    fn test_default_sidebar_state() {
+        let state = PersistedState::default();
+
+        // Sidebars default to unpinned (overlay/hover mode)
+        assert!(!state.sidebar_pinned);
+        assert!(!state.right_sidebar_pinned);
+    }
+
+    #[test]
+    fn test_serialization_roundtrip() {
+        let state = PersistedState {
+            sidebar_pinned: false,
+            right_sidebar_pinned: true,
+            ..Default::default()
+        };
+
+        let json = serde_json::to_string(&state).unwrap();
+        let parsed: PersistedState = serde_json::from_str(&json).unwrap();
+
+        assert!(!parsed.sidebar_pinned);
+        assert!(parsed.right_sidebar_pinned);
+    }
+
+    #[test]
+    fn test_deserialize_missing_fields_uses_defaults() {
+        // Simulates loading an old state.json that lacks sidebar pinned fields.
+        // #[serde(default)] on the struct fills missing fields from PersistedState::default().
+        let json = indoc! {r#"
+            {
+                "theme": "auto",
+                "sidebarWidth": 300.0
+            }
+        "#};
+
+        let parsed: PersistedState = serde_json::from_str(json).unwrap();
+
+        assert!(!parsed.sidebar_pinned);
+        assert!(!parsed.right_sidebar_pinned);
+        assert_eq!(parsed.sidebar_width, 300.0);
+    }
+
+    #[test]
+    fn test_deserialize_only_left_pinned() {
+        // Only left sidebar pinned; right sidebar fields missing → defaults
+        let json = indoc! {r#"
+            {
+                "sidebarPinned": true
+            }
+        "#};
+
+        let parsed: PersistedState = serde_json::from_str(json).unwrap();
+
+        assert!(parsed.sidebar_pinned);
+        // Right sidebar: defaults (pinned=false)
+        assert!(!parsed.right_sidebar_pinned);
+    }
+
+    #[test]
+    fn test_serialization_roundtrip_pinned_true() {
+        let state = PersistedState {
+            sidebar_pinned: true,
+            right_sidebar_pinned: true,
+            ..Default::default()
+        };
+
+        let json = serde_json::to_string_pretty(&state).unwrap();
+        let parsed: PersistedState = serde_json::from_str(&json).unwrap();
+
+        assert!(parsed.sidebar_pinned);
+        assert!(parsed.right_sidebar_pinned);
+    }
+
+    #[test]
+    fn test_deserialize_explicit_false_preserved() {
+        // User unpinned sidebar via Cmd+B → sidebarPinned: false persisted
+        let json = indoc! {r#"
+            {
+                "sidebarPinned": false,
+                "rightSidebarPinned": false
+            }
+        "#};
+
+        let parsed: PersistedState = serde_json::from_str(json).unwrap();
+
+        assert!(!parsed.sidebar_pinned);
+        assert!(!parsed.right_sidebar_pinned);
     }
 }

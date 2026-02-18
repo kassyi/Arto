@@ -49,28 +49,28 @@ pub fn RightSidebarTab(
                 class: "preference-item",
                 div {
                     class: "preference-item-header",
-                    label { "Open by Default" }
-                    p { class: "preference-description", "Whether the right sidebar panel is open when starting." }
+                    label { "Pinned by Default" }
+                    p { class: "preference-description", "Whether the right sidebar panel is pinned to the layout when starting." }
                 }
                 OptionCards {
-                    name: "right-sidebar-default-open".to_string(),
+                    name: "right-sidebar-default-pinned".to_string(),
                     options: vec![
                         OptionCardItem {
                             icon: None,
                             value: false,
-                            title: "Closed".to_string(),
-                            description: Some("Right sidebar closed by default".to_string()),
+                            title: "Unpinned".to_string(),
+                            description: Some("Right sidebar shown as overlay on hover".to_string()),
                         },
                         OptionCardItem {
                             icon: None,
                             value: true,
-                            title: "Open".to_string(),
-                            description: Some("Right sidebar open by default".to_string()),
+                            title: "Pinned".to_string(),
+                            description: Some("Right sidebar pinned to the layout".to_string()),
                         },
                     ],
-                    selected: right_sidebar_cfg.default_open,
+                    selected: right_sidebar_cfg.default_pinned,
                     on_change: move |new_state| {
-                        config.write().right_sidebar.default_open = new_state;
+                        config.write().right_sidebar.default_pinned = new_state;
                         has_changes.set(true);
                     },
                 }
