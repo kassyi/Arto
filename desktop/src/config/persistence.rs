@@ -4,6 +4,7 @@ use parking_lot::RwLock;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::LazyLock;
+use tokio::sync::broadcast;
 
 impl Config {
     /// Get the configuration file path based on the platform
@@ -80,3 +81,31 @@ pub static CONFIG: LazyLock<RwLock<Config>> = LazyLock::new(|| {
     let config = Config::load().unwrap_or_default();
     RwLock::new(config)
 });
+
+/// Broadcast channel to notify all windows when config changes.
+/// Subscribers call `.subscribe()` to get a receiver.
+pub static CONFIG_CHANGED_BROADCAST: LazyLock<broadcast::Sender<()>> =
+    LazyLock::new(|| broadcast::channel(16).0);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn populate_defaults_when_keybindings_field_is_missing() {
+        let raw = json!({});
+        let config = Config::default();
+
+        assert!(should_populate_default_keybindings(&raw, &config));
+    }
+
+    #[test]
+    fn do_not_populate_defaults_when_keybindings_field_is_present_but_empty() {
+        let raw = json!({ "keybindings": {} });
+        let config: Config = serde_json::from_value(raw.clone()).unwrap();
+
+        assert!(!should_populate_default_keybindings(&raw, &config));
+        assert!(config.keybindings.is_empty());
+    }
+}
