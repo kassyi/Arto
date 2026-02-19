@@ -643,6 +643,58 @@
   color: var(--text-secondary);
 }
 
+.about-config-dir {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.about-config-dir-label {
+  margin: 0 0 0.5rem;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: left;
+}
+
+.about-config-dir-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.about-config-dir-input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+  color: var(--text-color);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+}
+
+.about-config-dir-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background: var(--bg-color);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast) ease;
+}
+
+.about-config-dir-button:hover {
+  background: var(--hover-bg);
+  border-color: var(--hover-border);
+  color: var(--text-color);
+}
+
 .about-links {
   display: flex;
   flex-direction: column;
