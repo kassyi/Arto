@@ -44,6 +44,9 @@ pub(super) fn extract_headings(markdown: &str) -> Vec<HeadingInfo> {
     // invalid YAML frontmatter is NOT stripped (same as render pipeline).
     let (_, content, _) = extract_and_render_frontmatter(markdown);
 
+    // Convert bare URLs to <URL> autolinks (consistent with render pipeline)
+    let content = super::autolinks::preprocess_autolinks(&content);
+
     // Process GitHub alerts (they contain their own parsing)
     // frontmatter_lines=0 since extract_headings doesn't need source line tracking
     let (processed, _) = process_github_alerts(&content, 0);

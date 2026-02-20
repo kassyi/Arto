@@ -1,4 +1,5 @@
 mod alerts;
+mod autolinks;
 mod event_processors;
 mod frontmatter;
 mod headings;
@@ -40,6 +41,9 @@ fn run_pipeline(markdown: &str, base_path: &Path) -> PipelineResult {
 
     // Extract frontmatter if present
     let (frontmatter_html, content, frontmatter_lines) = extract_and_render_frontmatter(markdown);
+
+    // Convert bare URLs to <URL> autolinks before any parsing
+    let content = autolinks::preprocess_autolinks(&content);
 
     // Process GitHub alerts (returns line origin mapping for correct source line tracking)
     let (processed_markdown, line_origins) = process_github_alerts(&content, frontmatter_lines);
@@ -868,6 +872,67 @@ mod tests {
         assert!(
             result.contains(r#"data-source-line-end="7""#),
             "Second table should end on line 7: {result}"
+        );
+    }
+
+    // ========================================================================
+    // Autolink integration tests
+    // ========================================================================
+
+    #[test]
+    fn test_bare_url_becomes_link() {
+        let markdown = "Visit https://example.com for info";
+        let temp_dir = TempDir::new().unwrap();
+        let md_path = temp_dir.path().join("test.md");
+        let result = render_to_html(markdown, &md_path).unwrap();
+
+        assert!(
+            result.contains(r#"<a href="https://example.com">https://example.com</a>"#),
+            "Bare URL should become a link: {result}"
+        );
+    }
+
+    #[test]
+    fn test_bare_url_in_code_block_not_linked() {
+        let markdown = indoc! {"
+            ```
+            https://example.com
+            ```
+        "};
+        let temp_dir = TempDir::new().unwrap();
+        let md_path = temp_dir.path().join("test.md");
+        let result = render_to_html(markdown, &md_path).unwrap();
+
+        assert!(
+            !result.contains(r#"<a href"#),
+            "URL inside code block should NOT become a link: {result}"
+        );
+    }
+
+    #[test]
+    fn test_bare_url_source_lines_preserved() {
+        let markdown = indoc! {"
+            # Title
+
+            https://example.com
+
+            After URL
+        "};
+        let temp_dir = TempDir::new().unwrap();
+        let md_path = temp_dir.path().join("test.md");
+        let result = render_to_html(markdown, &md_path).unwrap();
+
+        assert!(
+            result.contains(r#"<h1 data-source-line="1">"#),
+            "Heading should be on line 1: {result}"
+        );
+        assert!(
+            result.contains(r#"<p data-source-line="3">"#),
+            "URL paragraph should be on line 3: {result}"
+        );
+        assert!(
+            result.contains(r#"<p data-source-line="5">"#),
+            "After paragraph should be on line 5: {result}"
         );
     }
 
