@@ -317,7 +317,7 @@ function detectContext(target: HTMLElement): DetectedContext {
     if (current.tagName === "A" && !current.classList.contains("markdown-link")) {
       const anchor = current as HTMLAnchorElement;
       return {
-        context: { type: "link", href: anchor.href },
+        context: { type: "link", href: anchor.getAttribute("href") || "" },
         sourceLine: null,
         sourceLineEnd: null,
       };
