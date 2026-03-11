@@ -3,6 +3,8 @@
  * Detects the type of element that was right-clicked and reports to Rust.
  */
 
+import { extractTableDelimited, escapeDelimitedField, formatTableAsMarkdown } from "./table-utils";
+
 export type ContentContextType =
   | { type: "general" }
   | { type: "link"; href: string }
@@ -353,56 +355,6 @@ function detectTable(target: HTMLElement): TableData | null {
     sourceLineEnd: range.end,
   };
 }
-
-/**
- * Convert an HTML table to a delimited string (CSV or TSV).
- * Follows RFC 4180 for CSV escaping: fields containing the delimiter,
- * double quotes, or newlines are enclosed in double quotes, and internal
- * double quotes are escaped by doubling them.
- */
-function extractTableDelimited(table: HTMLTableElement, delimiter: string): string {
-  const rows: string[] = [];
-  for (const row of table.rows) {
-    const cells: string[] = [];
-    for (const cell of row.cells) {
-      const text = cell.textContent?.trim() ?? "";
-      cells.push(escapeDelimitedField(text, delimiter));
-    }
-    rows.push(cells.join(delimiter));
-  }
-  return rows.join("\n");
-}
-
-/**
- * Escape a field value for delimited output (CSV/TSV).
- *
- * In addition to RFC 4180 quoting (delimiter, quotes, newlines),
- * fields starting with `=`, `+`, `-`, or `@` are wrapped in quotes with
- * a leading tab character inside to prevent formula injection when pasted
- * into spreadsheets.
- */
-function escapeDelimitedField(value: string, delimiter: string): string {
-  // Prevent spreadsheet formula injection (CSV Injection / DDE attacks).
-  // Cells starting with these characters are interpreted as formulas by
-  // Excel, Google Sheets, and LibreOffice Calc.
-  const needsFormulaGuard =
-    value.length > 0 &&
-    (value[0] === "=" || value[0] === "+" || value[0] === "-" || value[0] === "@");
-
-  if (
-    needsFormulaGuard ||
-    value.includes(delimiter) ||
-    value.includes('"') ||
-    value.includes("\n") ||
-    value.includes("\r")
-  ) {
-    const escaped = value.replace(/"/g, '""');
-    // Tab prefix neutralizes formula interpretation while preserving the value
-    return needsFormulaGuard ? `"\t${escaped}"` : `"${escaped}"`;
-  }
-  return value;
-}
-
 /**
  * Extract language from code element's class
  */
