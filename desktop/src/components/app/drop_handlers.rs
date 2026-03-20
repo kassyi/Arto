@@ -35,10 +35,8 @@ pub(super) async fn handle_dropped_files(evt: Event<DragData>, mut state: AppSta
             // If it's a directory, set it as root and show the sidebar
             tracing::info!("Setting dropped directory as root: {:?}", resolved_path);
             state.set_root_directory(resolved_path);
-            // Show the sidebar if it's hidden so users can see the directory tree
-            if !state.sidebar.read().open {
-                state.toggle_sidebar();
-            }
+            // Pin the sidebar so users can see the directory tree
+            state.sidebar.write().pinned = true;
         } else {
             // Open any file (not just markdown)
             tracing::info!("Opening dropped file: {:?}", resolved_path);

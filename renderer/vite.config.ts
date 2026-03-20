@@ -31,7 +31,13 @@ function iconSpritePlugin(): Plugin {
             .replace(/<svg[^>]*>/, "")
             .replace(/<\/svg>/, "")
             .trim();
-          return `  <symbol id="tabler-${name}" viewBox="0 0 24 24">${content}</symbol>`;
+
+          // Filled icons need fill & stroke attributes (lost when stripping <svg> wrapper)
+          const attrs = isFilled
+            ? ` fill="currentColor" stroke="none" stroke-width="0"`
+            : "";
+
+          return `  <symbol id="tabler-${name}" viewBox="0 0 24 24"${attrs}>${content}</symbol>`;
         })
         .join("\n");
 

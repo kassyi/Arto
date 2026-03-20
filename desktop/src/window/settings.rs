@@ -38,14 +38,14 @@ pub struct DirectoryPreference {
 }
 
 pub struct SidebarPreference {
-    pub open: bool,
+    pub pinned: bool,
     pub width: f64,
     pub show_all_files: bool,
     pub zoom_level: f64,
 }
 
 pub struct RightSidebarPreference {
-    pub open: bool,
+    pub pinned: bool,
     pub width: f64,
     pub tab: RightSidebarTab,
     pub zoom_level: f64,
@@ -293,7 +293,7 @@ pub fn get_sidebar_preference(is_first_window: bool) -> SidebarPreference {
         cfg.sidebar.on_startup,
         cfg.sidebar.on_new_window,
         || SidebarPreference {
-            open: cfg.sidebar.default_open,
+            pinned: cfg.sidebar.default_pinned,
             width: cfg.sidebar.default_width,
             show_all_files: cfg.sidebar.default_show_all_files,
             zoom_level: cfg.sidebar.default_zoom_level,
@@ -303,14 +303,14 @@ pub fn get_sidebar_preference(is_first_window: bool) -> SidebarPreference {
                 |state| {
                     let sidebar = state.sidebar.read();
                     SidebarPreference {
-                        open: sidebar.open,
+                        pinned: sidebar.pinned,
                         width: sidebar.width,
                         show_all_files: sidebar.show_all_files,
                         zoom_level: sidebar.zoom_level,
                     }
                 },
                 |persisted| SidebarPreference {
-                    open: persisted.sidebar_open,
+                    pinned: persisted.sidebar_pinned,
                     width: persisted.sidebar_width,
                     show_all_files: persisted.sidebar_show_all_files,
                     zoom_level: persisted.sidebar_zoom_level,
@@ -332,7 +332,7 @@ pub fn get_right_sidebar_preference(is_first_window: bool) -> RightSidebarPrefer
         cfg.right_sidebar.on_startup,
         cfg.right_sidebar.on_new_window,
         || RightSidebarPreference {
-            open: cfg.right_sidebar.default_open,
+            pinned: cfg.right_sidebar.default_pinned,
             width: cfg.right_sidebar.default_width,
             tab: cfg.right_sidebar.default_tab,
             zoom_level: cfg.right_sidebar.default_zoom_level,
@@ -340,13 +340,13 @@ pub fn get_right_sidebar_preference(is_first_window: bool) -> RightSidebarPrefer
         || {
             resolve_from_state_or_persisted(
                 |state| RightSidebarPreference {
-                    open: *state.right_sidebar_open.read(),
+                    pinned: *state.right_sidebar_pinned.read(),
                     width: *state.right_sidebar_width.read(),
                     tab: *state.right_sidebar_tab.read(),
                     zoom_level: *state.right_sidebar_zoom_level.read(),
                 },
                 |persisted| RightSidebarPreference {
-                    open: persisted.right_sidebar_open,
+                    pinned: persisted.right_sidebar_pinned,
                     width: persisted.right_sidebar_width,
                     tab: persisted.right_sidebar_tab,
                     zoom_level: persisted.right_sidebar_zoom_level,
@@ -411,6 +411,54 @@ pub fn get_window_position_preference(is_first_window: bool) -> WindowPositionPr
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_choose_by_behavior_startup_default() {
+        let result = choose_by_behavior(
+            true,
+            StartupBehavior::Default,
+            NewWindowBehavior::LastFocused,
+            || "default_value",
+            || "last_value",
+        );
+        assert_eq!(result, "default_value");
+    }
+
+    #[test]
+    fn test_choose_by_behavior_startup_last_closed() {
+        let result = choose_by_behavior(
+            true,
+            StartupBehavior::LastClosed,
+            NewWindowBehavior::Default,
+            || "default_value",
+            || "last_value",
+        );
+        assert_eq!(result, "last_value");
+    }
+
+    #[test]
+    fn test_choose_by_behavior_new_window_default() {
+        let result = choose_by_behavior(
+            false,
+            StartupBehavior::LastClosed,
+            NewWindowBehavior::Default,
+            || "default_value",
+            || "last_value",
+        );
+        assert_eq!(result, "default_value");
+    }
+
+    #[test]
+    fn test_choose_by_behavior_new_window_last_focused() {
+        let result = choose_by_behavior(
+            false,
+            StartupBehavior::Default,
+            NewWindowBehavior::LastFocused,
+            || "default_value",
+            || "last_value",
+        );
+        assert_eq!(result, "last_value");
+    }
 
     #[test]
     fn test_get_theme_preference_first_window() {

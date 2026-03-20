@@ -80,7 +80,7 @@ mod tests {
         assert!(config.markdown.auto_link_urls); // Default is true
 
         // Sidebar defaults
-        assert!(!config.sidebar.default_open); // Default is false
+        assert!(!config.sidebar.default_pinned); // Default is false (unpinned, overlay on hover)
         assert_eq!(config.sidebar.default_width, 280.0);
         assert!(!config.sidebar.default_show_all_files);
         assert_eq!(config.sidebar.default_zoom_level, 1.0);
@@ -88,7 +88,7 @@ mod tests {
         assert_eq!(config.sidebar.on_new_window, NewWindowBehavior::Default);
 
         // Right sidebar defaults
-        assert!(!config.right_sidebar.default_open);
+        assert!(!config.right_sidebar.default_pinned);
         assert_eq!(config.right_sidebar.default_width, 220.0);
         assert_eq!(config.right_sidebar.default_zoom_level, 1.0);
         assert_eq!(config.right_sidebar.on_startup, StartupBehavior::Default);
@@ -161,7 +161,7 @@ mod tests {
                 on_new_window: NewWindowBehavior::Default,
             },
             sidebar: SidebarConfig {
-                default_open: false,
+                default_pinned: false,
                 default_width: 320.0,
                 default_show_all_files: true,
                 default_zoom_level: 1.2,
@@ -169,7 +169,7 @@ mod tests {
                 on_new_window: NewWindowBehavior::LastFocused,
             },
             right_sidebar: RightSidebarConfig {
-                default_open: true,
+                default_pinned: true,
                 default_width: 250.0,
                 default_tab: Default::default(),
                 default_zoom_level: 0.8,
@@ -231,10 +231,10 @@ mod tests {
             parsed.directory.default_directory,
             Some(PathBuf::from("/home/user"))
         );
-        assert!(!parsed.sidebar.default_open);
+        assert!(!parsed.sidebar.default_pinned);
         assert_eq!(parsed.sidebar.default_width, 320.0);
         assert_eq!(parsed.sidebar.default_zoom_level, 1.2);
-        assert!(parsed.right_sidebar.default_open);
+        assert!(parsed.right_sidebar.default_pinned);
         assert_eq!(parsed.right_sidebar.default_width, 250.0);
         assert_eq!(parsed.right_sidebar.default_zoom_level, 0.8);
         assert_eq!(parsed.window_position.default_position.x.value, 10.0);

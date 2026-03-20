@@ -48,28 +48,28 @@ pub fn SidebarTab(
                 class: "preference-item",
                 div {
                     class: "preference-item-header",
-                    label { "Open by Default" }
-                    p { class: "preference-description", "Whether the sidebar is open when starting." }
+                    label { "Pinned by Default" }
+                    p { class: "preference-description", "Whether the sidebar is pinned to the layout when starting." }
                 }
                 OptionCards {
-                    name: "sidebar-default-open".to_string(),
+                    name: "sidebar-default-pinned".to_string(),
                     options: vec![
                         OptionCardItem {
                             icon: None,
                             value: false,
-                            title: "Closed".to_string(),
-                            description: Some("Sidebar closed by default".to_string()),
+                            title: "Unpinned".to_string(),
+                            description: Some("Sidebar shown as overlay on hover".to_string()),
                         },
                         OptionCardItem {
                             icon: None,
                             value: true,
-                            title: "Open".to_string(),
-                            description: Some("Sidebar open by default".to_string()),
+                            title: "Pinned".to_string(),
+                            description: Some("Sidebar pinned to the layout".to_string()),
                         },
                     ],
-                    selected: sidebar_cfg.default_open,
+                    selected: sidebar_cfg.default_pinned,
                     on_change: move |new_state| {
-                        config.write().sidebar.default_open = new_state;
+                        config.write().sidebar.default_pinned = new_state;
                         has_changes.set(true);
                     },
                 }

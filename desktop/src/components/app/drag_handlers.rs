@@ -397,7 +397,6 @@ fn spawn_preview_window_creation(params: PreviewWindowParams) {
     spawn(async move {
         let config = CreateMainWindowConfigParams {
             directory: params.directory,
-            sidebar_open: params.sidebar.open,
             sidebar_width: params.sidebar.width,
             sidebar_show_all_files: params.sidebar.show_all_files,
             theme: params.theme,

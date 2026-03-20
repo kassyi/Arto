@@ -30,10 +30,8 @@ pub(super) fn setup_cross_window_open_listeners(mut state: AppState) {
             if target_window_id == current_window_id {
                 tracing::info!(?path, "Opening directory from cross-window request");
                 state.set_root_directory(path.clone());
-                // Show the sidebar if it's hidden
-                if !state.sidebar.read().open {
-                    state.toggle_sidebar();
-                }
+                // Pin the sidebar so users can see the directory tree
+                state.sidebar.write().pinned = true;
             }
         }
     });

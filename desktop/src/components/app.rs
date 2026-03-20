@@ -47,11 +47,11 @@ pub fn App(
     tabs: Vec<Tab>,     // Initial tabs (at least one tab must be present)
     directory: PathBuf, // Directory (resolved in create_main_window or MainApp)
     theme: Theme,       // The enum: Auto/Light/Dark
-    sidebar_open: bool,
+    sidebar_pinned: bool,
     sidebar_width: f64,
     sidebar_show_all_files: bool,
     sidebar_zoom_level: f64,
-    right_sidebar_open: bool,
+    right_sidebar_pinned: bool,
     right_sidebar_width: f64,
     right_sidebar_tab: RightSidebarTab,
     right_sidebar_zoom_level: f64,
@@ -75,14 +75,14 @@ pub fn App(
             let mut sidebar = app_state.sidebar.write();
             sidebar.root_directory = Some(directory.clone());
             sidebar.push_to_history(directory);
-            sidebar.open = sidebar_open;
+            sidebar.pinned = sidebar_pinned;
             sidebar.width = sidebar_width;
             sidebar.show_all_files = sidebar_show_all_files;
         }
 
         // Apply initial right sidebar settings from params
         {
-            app_state.right_sidebar_open.set(right_sidebar_open);
+            app_state.right_sidebar_pinned.set(right_sidebar_pinned);
             app_state.right_sidebar_width.set(right_sidebar_width);
             app_state.right_sidebar_tab.set(right_sidebar_tab);
         }
@@ -304,6 +304,32 @@ pub fn App(
         crate::window::close_child_windows_for_parent(window_id);
     });
 
+    // Hover state for overlay sidebars is stored in AppState
+    // so that dispatcher.rs (keybinding focus actions) can access it.
+    let mut left_hover_active = state.left_hover_active;
+    let mut right_hover_active = state.right_hover_active;
+    // Generation counters for auto-hide timer cancellation
+    let mut left_hide_gen = use_signal(|| 0u32);
+    let mut right_hide_gen = use_signal(|| 0u32);
+    // Track whether mouse is physically inside the overlay wrapper.
+    // Used by on_resize_change to decide whether to start a hide timer:
+    // if mouse is inside, onmouseleave will handle hiding naturally.
+    let mut left_mouse_inside = use_signal(|| false);
+    let mut right_mouse_inside = use_signal(|| false);
+
+    let left_pinned = state.sidebar.read().pinned;
+    let right_pinned = *state.right_sidebar_pinned.read();
+
+    // Disable sidebar hover on Preferences (full-screen settings page)
+    let enable_sidebar_hover = state
+        .current_tab()
+        .is_none_or(|tab| !matches!(tab.content, crate::state::TabContent::Preferences));
+
+    // Delay in milliseconds before auto-hiding the overlay sidebar.
+    // 300ms is the standard "Hover Intent" delay (Nielsen Norman Group),
+    // balancing responsiveness with prevention of flickering at boundaries.
+    const OVERLAY_HIDE_DELAY_MS: u64 = 300;
+
     let focused_panel = *state.focused_panel.read();
     let focused_context = focused_panel.key_context();
     let shortcut_help_columns = if !matches!(
@@ -339,7 +365,15 @@ pub fn App(
                 });
             },
 
-            Sidebar {},
+            // Left sidebar: pinned → flex layout, unpinned → overlay with animation
+            if left_pinned {
+                Sidebar {
+                    on_pin_toggle: move |_| {
+                        state.sidebar.write().pinned = false;
+                        left_hover_active.set(true);
+                    },
+                }
+            }
 
             div {
                 class: "main-area",
@@ -349,7 +383,139 @@ pub fn App(
                 Content {},
             }
 
-            RightSidebar { headings: state.right_sidebar_headings.read().clone() }
+            // Right sidebar: pinned → flex layout, unpinned → overlay with animation
+            if right_pinned {
+                RightSidebar {
+                    headings: state.right_sidebar_headings.read().clone(),
+                    on_pin_toggle: move |_| {
+                        state.right_sidebar_pinned.set(false);
+                        right_hover_active.set(true);
+                    },
+                }
+            }
+
+            // Hover triggers and overlays (only when unpinned, on content-display tabs)
+            if !left_pinned && enable_sidebar_hover {
+                div {
+                    class: "sidebar-hover-trigger left",
+                    onmouseenter: move |_| {
+                        left_hover_active.set(true);
+                        left_hide_gen.set(left_hide_gen() + 1);
+                    },
+                }
+            }
+
+            if !right_pinned && enable_sidebar_hover {
+                div {
+                    class: "sidebar-hover-trigger right",
+                    onmouseenter: move |_| {
+                        right_hover_active.set(true);
+                        right_hide_gen.set(right_hide_gen() + 1);
+                    },
+                }
+            }
+
+            // Overlay wrappers (rendered when unpinned, animated via .visible class)
+            if !left_pinned && enable_sidebar_hover {
+                div {
+                    class: "sidebar-overlay-wrapper left",
+                    class: if left_hover_active() { "visible" },
+                    onmouseenter: move |_| {
+                        left_mouse_inside.set(true);
+                        left_hide_gen.set(left_hide_gen() + 1);
+                    },
+                    onmouseleave: move |evt| {
+                        left_mouse_inside.set(false);
+                        // Don't auto-hide while mouse button is held (e.g., resize drag)
+                        if evt.data().held_buttons().contains(dioxus::html::input_data::MouseButton::Primary) {
+                            return;
+                        }
+                        let gen = left_hide_gen() + 1;
+                        left_hide_gen.set(gen);
+                        spawn(async move {
+                            tokio::time::sleep(tokio::time::Duration::from_millis(OVERLAY_HIDE_DELAY_MS)).await;
+                            if left_hide_gen() == gen {
+                                left_hover_active.set(false);
+                            }
+                        });
+                    },
+                    Sidebar {
+                        on_pin_toggle: move |_| {
+                            state.sidebar.write().pinned = true;
+                            left_hover_active.set(false);
+                        },
+                        on_resize_change: move |resizing: bool| {
+                            if resizing {
+                                // Cancel any pending hide timer
+                                left_hide_gen.set(left_hide_gen() + 1);
+                            } else if !left_mouse_inside() {
+                                // Resize ended with mouse outside: start hide timer
+                                let gen = left_hide_gen() + 1;
+                                left_hide_gen.set(gen);
+                                spawn(async move {
+                                    tokio::time::sleep(tokio::time::Duration::from_millis(OVERLAY_HIDE_DELAY_MS)).await;
+                                    if left_hide_gen() == gen {
+                                        left_hover_active.set(false);
+                                    }
+                                });
+                            }
+                            // Resize ended with mouse inside: do nothing,
+                            // onmouseleave will handle hiding when mouse leaves.
+                        },
+                    }
+                }
+            }
+
+            if !right_pinned && enable_sidebar_hover {
+                div {
+                    class: "sidebar-overlay-wrapper right",
+                    class: if right_hover_active() { "visible" },
+                    onmouseenter: move |_| {
+                        right_mouse_inside.set(true);
+                        right_hide_gen.set(right_hide_gen() + 1);
+                    },
+                    onmouseleave: move |evt| {
+                        right_mouse_inside.set(false);
+                        // Don't auto-hide while mouse button is held (e.g., resize drag)
+                        if evt.data().held_buttons().contains(dioxus::html::input_data::MouseButton::Primary) {
+                            return;
+                        }
+                        let gen = right_hide_gen() + 1;
+                        right_hide_gen.set(gen);
+                        spawn(async move {
+                            tokio::time::sleep(tokio::time::Duration::from_millis(OVERLAY_HIDE_DELAY_MS)).await;
+                            if right_hide_gen() == gen {
+                                right_hover_active.set(false);
+                            }
+                        });
+                    },
+                    RightSidebar {
+                        headings: state.right_sidebar_headings.read().clone(),
+                        on_pin_toggle: move |_| {
+                            state.right_sidebar_pinned.set(true);
+                            right_hover_active.set(false);
+                        },
+                        on_resize_change: move |resizing: bool| {
+                            if resizing {
+                                // Cancel any pending hide timer
+                                right_hide_gen.set(right_hide_gen() + 1);
+                            } else if !right_mouse_inside() {
+                                // Resize ended with mouse outside: start hide timer
+                                let gen = right_hide_gen() + 1;
+                                right_hide_gen.set(gen);
+                                spawn(async move {
+                                    tokio::time::sleep(tokio::time::Duration::from_millis(OVERLAY_HIDE_DELAY_MS)).await;
+                                    if right_hide_gen() == gen {
+                                        right_hover_active.set(false);
+                                    }
+                                });
+                            }
+                            // Resize ended with mouse inside: do nothing,
+                            // onmouseleave will handle hiding when mouse leaves.
+                        },
+                    }
+                }
+            }
 
             // Drag and drop overlay
             if is_dragging() {

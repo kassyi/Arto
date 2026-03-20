@@ -39,8 +39,8 @@ pub fn normalize_zoom_level(zoom: f64) -> f64 {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SidebarConfig {
-    /// Whether sidebar is open by default
-    pub default_open: bool,
+    /// Whether sidebar is pinned to the layout by default
+    pub default_pinned: bool,
     /// Default sidebar width in pixels
     #[serde(default = "default_sidebar_width")]
     pub default_width: f64,
@@ -58,7 +58,7 @@ pub struct SidebarConfig {
 impl Default for SidebarConfig {
     fn default() -> Self {
         Self {
-            default_open: false,
+            default_pinned: false,
             default_width: default_sidebar_width(),
             default_show_all_files: false,
             default_zoom_level: default_sidebar_zoom_level(),

@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 /// Represents the state of the sidebar file explorer
 #[derive(Debug, Clone, PartialEq)]
 pub struct Sidebar {
-    pub open: bool,
+    pub pinned: bool,
     pub root_directory: Option<PathBuf>,
     pub expanded_dirs: HashSet<PathBuf>,
     pub width: f64,
@@ -25,7 +25,7 @@ pub struct Sidebar {
 impl Default for Sidebar {
     fn default() -> Self {
         Self {
-            open: false,
+            pinned: false,
             root_directory: None,
             expanded_dirs: HashSet::new(),
             width: 280.0,
@@ -74,10 +74,13 @@ impl Sidebar {
 }
 
 impl AppState {
-    /// Toggle sidebar visibility
+    /// Toggle sidebar between pinned (flex layout) and unpinned (overlay/hover).
+    ///
+    /// - Pinned: visible in flex layout, pushes content aside
+    /// - Unpinned: accessible via hover as an overlay
     pub fn toggle_sidebar(&mut self) {
         let mut sidebar = self.sidebar.write();
-        sidebar.open = !sidebar.open;
+        sidebar.pinned = !sidebar.pinned;
     }
 
     /// Toggle directory expansion state
@@ -95,7 +98,7 @@ mod tests {
     fn test_sidebar_default() {
         let sidebar = Sidebar::default();
 
-        assert!(!sidebar.open);
+        assert!(!sidebar.pinned);
         assert_eq!(sidebar.width, 280.0);
         assert!(!sidebar.show_all_files);
         assert_eq!(sidebar.zoom_level, 1.0);
@@ -135,6 +138,90 @@ mod tests {
 
         assert!(!sidebar.expanded_dirs.contains(&path1));
         assert!(sidebar.expanded_dirs.contains(&path2));
+    }
+
+    /// Simulates the toggle logic from `AppState::toggle_sidebar()`.
+    /// The actual method operates on `Signal<Sidebar>`, but the state
+    /// transition logic is identical.
+    fn apply_toggle(sidebar: &mut Sidebar) {
+        sidebar.pinned = !sidebar.pinned;
+    }
+
+    #[test]
+    fn test_toggle_from_unpinned_to_pinned() {
+        let mut sidebar = Sidebar::default();
+        assert!(!sidebar.pinned);
+
+        apply_toggle(&mut sidebar);
+        assert!(sidebar.pinned);
+    }
+
+    #[test]
+    fn test_toggle_from_pinned_to_unpinned() {
+        let mut sidebar = Sidebar {
+            pinned: true,
+            ..Default::default()
+        };
+
+        apply_toggle(&mut sidebar);
+        assert!(!sidebar.pinned);
+    }
+
+    #[test]
+    fn test_toggle_full_cycle() {
+        // unpinned → pinned → unpinned → pinned
+        let mut sidebar = Sidebar::default();
+        assert!(!sidebar.pinned);
+
+        apply_toggle(&mut sidebar);
+        assert!(sidebar.pinned);
+
+        apply_toggle(&mut sidebar);
+        assert!(!sidebar.pinned);
+
+        apply_toggle(&mut sidebar);
+        assert!(sidebar.pinned);
+
+        apply_toggle(&mut sidebar);
+        assert!(!sidebar.pinned);
+    }
+
+    /// Simulates the toggle logic from `AppState::toggle_right_sidebar()`.
+    /// The actual method operates on `Signal<bool>`, but the state
+    /// transition logic is identical to the left sidebar.
+    fn apply_right_toggle(pinned: &mut bool) {
+        *pinned = !*pinned;
+    }
+
+    #[test]
+    fn test_right_toggle_from_unpinned_to_pinned() {
+        let mut pinned = false;
+        apply_right_toggle(&mut pinned);
+        assert!(pinned);
+    }
+
+    #[test]
+    fn test_right_toggle_from_pinned_to_unpinned() {
+        let mut pinned = true;
+        apply_right_toggle(&mut pinned);
+        assert!(!pinned);
+    }
+
+    #[test]
+    fn test_right_toggle_full_cycle() {
+        let mut pinned = false;
+
+        apply_right_toggle(&mut pinned);
+        assert!(pinned);
+
+        apply_right_toggle(&mut pinned);
+        assert!(!pinned);
+
+        apply_right_toggle(&mut pinned);
+        assert!(pinned);
+
+        apply_right_toggle(&mut pinned);
+        assert!(!pinned);
     }
 
     #[test]
