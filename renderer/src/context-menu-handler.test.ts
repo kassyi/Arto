@@ -182,9 +182,9 @@ describe("setup", () => {
     document.caretRangeFromPoint = () => null;
 
     window.Arto = {
-      ...(window.Arto ?? {}),
+      ...window.Arto,
       contentCursor: {
-        ...(window.Arto?.contentCursor ?? {}),
+        ...window.Arto?.contentCursor,
         clearCursor: () => {},
         setFromContextTarget: () => {},
       },

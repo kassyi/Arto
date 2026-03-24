@@ -1,4 +1,5 @@
-/// Content cursor for keyboard navigation of block elements in the markdown viewer.
+import { scrollIntoViewClamped } from "./scroll-controller";
+import { extractTableDelimited, formatTableAsMarkdown } from "./table-utils";
 ///
 /// Manages cursor state, navigation (next/prev, heading jump), highlight,
 /// and content extraction for copy actions. Cursor state lives in JS because
@@ -6,8 +7,6 @@
 ///
 /// Lazy rescan pattern: before each navigation, verify the current element is
 /// still in the DOM via document.contains(). If stale, rescan from .markdown-body.
-
-import { extractTableDelimited, formatTableAsMarkdown } from "./table-utils";
 
 const CURSOR_CLASS = "content-cursor-active";
 const HOLD_CLASS = "content-cursor-hold";
@@ -97,7 +96,7 @@ function applyHighlight(scroll: boolean): void {
     void el.offsetWidth;
     el.classList.add(CURSOR_CLASS);
     if (scroll) {
-      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      scrollIntoViewClamped(el, "nearest");
     }
   }
 }
