@@ -20,8 +20,9 @@ pub(super) fn ContextMenuItem(props: ContextMenuItemProps) -> Element {
     rsx! {
         div {
             class: if props.disabled { "context-menu-item disabled" } else { "context-menu-item" },
-            onclick: move |_| {
+            onclick: move |evt| {
                 if !props.disabled {
+                    evt.stop_propagation();
                     props.on_click.call(());
                 }
             },
