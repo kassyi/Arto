@@ -177,9 +177,19 @@ fn add_app_menu(menu: &Menu) {
 
     arto_menu
         .append_items(&[
-            &create_menu_item(MenuId::About, if cfg!(windows) { "About" } else { "About Arto" }),
+            &create_menu_item(
+                MenuId::About,
+                if cfg!(windows) { "About" } else { "About Arto" },
+            ),
             &PredefinedMenuItem::separator(),
-            &create_menu_item(MenuId::Preferences, if cfg!(windows) { "Settings" } else { "Preferences..." }),
+            &create_menu_item(
+                MenuId::Preferences,
+                if cfg!(windows) {
+                    "Settings"
+                } else {
+                    "Preferences..."
+                },
+            ),
             &PredefinedMenuItem::separator(),
             &PredefinedMenuItem::quit(Some(if cfg!(windows) { "Exit" } else { "Quit" })),
         ])
@@ -200,7 +210,14 @@ fn add_file_menu(menu: &Menu) {
             &create_menu_item(MenuId::OpenDirectory, "Open Directory..."),
             &PredefinedMenuItem::separator(),
             &create_menu_item(MenuId::CopyFilePath, "Copy File Path"),
-            &create_menu_item(MenuId::RevealInFinder, if cfg!(windows) { "Reveal in File Explorer" } else { "Reveal in Finder" }),
+            &create_menu_item(
+                MenuId::RevealInFinder,
+                if cfg!(windows) {
+                    "Reveal in File Explorer"
+                } else {
+                    "Reveal in Finder"
+                },
+            ),
             &PredefinedMenuItem::separator(),
             &create_menu_item(MenuId::CloseTab, "Close Tab"),
             &create_menu_item(MenuId::CloseAllTabs, "Close All Tabs"),
