@@ -22,10 +22,11 @@ pub(super) fn CopyImageAsSubmenu(
                     let src = src.clone();
                     move |_| {
                         let src = src.clone();
+                        let on_close = on_close;
                         spawn(async move {
                             crate::keybindings::dispatcher::copy_image_from_src(src, false).await;
+                            on_close.call(());
                         });
-                        on_close.call(());
                     }
                 },
             }
@@ -37,10 +38,11 @@ pub(super) fn CopyImageAsSubmenu(
                     let src = src.clone();
                     move |_| {
                         let src = src.clone();
+                        let on_close = on_close;
                         spawn(async move {
                             crate::keybindings::dispatcher::copy_image_from_src(src, true).await;
+                            on_close.call(());
                         });
-                        on_close.call(());
                     }
                 },
             }
@@ -87,9 +89,9 @@ pub(super) fn CopySpecialBlockAsSubmenu(is_mermaid: bool, on_close: EventHandler
             ContextMenuItem {
                 label: "Image",
                 on_click: {
+                    let on_close = on_close;
                     move |_| {
-                        super::copy_special_block_image(is_mermaid, false);
-                        on_close.call(());
+                        super::copy_special_block_image(is_mermaid, false, on_close);
                     }
                 },
             }
@@ -98,9 +100,9 @@ pub(super) fn CopySpecialBlockAsSubmenu(is_mermaid: bool, on_close: EventHandler
                 label: "Image with Background",
                 shortcut: shortcut("clipboard.copy_image_with_background"),
                 on_click: {
+                    let on_close = on_close;
                     move |_| {
-                        super::copy_special_block_image(is_mermaid, true);
-                        on_close.call(());
+                        super::copy_special_block_image(is_mermaid, true, on_close);
                     }
                 },
             }
