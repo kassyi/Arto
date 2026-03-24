@@ -115,19 +115,25 @@ pub fn App(
 
     // Initialize JavaScript main module (theme listeners, etc.)
     use_hook(|| {
+        let cache_buster = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis();
+        
         spawn(async move {
             let _ = document::eval(&format!(
                 r#"
                 (async () => {{
                     try {{
-                        const {{ init }} = await import("{}");
+                        const {{ init }} = await import("{}?t={}");
                         init();
                     }} catch (error) {{
                         console.error("Failed to load main module:", error);
                     }}
                 }})();
                 "#,
-                get_main_script_path()
+                get_main_script_path(),
+                cache_buster
             ))
             .await;
         });
@@ -429,6 +435,10 @@ pub fn App(
                         left_mouse_inside.set(false);
                         // Don't auto-hide while mouse button is held (e.g., resize drag)
                         if evt.data().held_buttons().contains(dioxus::html::input_data::MouseButton::Primary) {
+                            return;
+                        }
+                        // Don't auto-hide if a context menu is open
+                        if state.sidebar.read().context_menu_active {
                             return;
                         }
                         let gen = left_hide_gen() + 1;
