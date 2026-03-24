@@ -195,6 +195,13 @@ impl AppState {
         };
         if let Some(parent) = parent {
             self.set_root_directory(parent);
+        } else {
+            #[cfg(target_os = "windows")]
+            {
+                let mut sidebar = self.sidebar.write();
+                sidebar.root_directory = None;
+                sidebar.expanded_dirs.clear();
+            }
         }
     }
 
