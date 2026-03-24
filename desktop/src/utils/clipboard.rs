@@ -86,9 +86,18 @@ pub fn copy_image_from_data_url(data_url: impl AsRef<str>) {
         bytes: rgba_img.into_raw().into(),
     };
 
-    // Copy to clipboard
+    // Copy to clipboard with retry logic for Windows
     let mut clipboard = CLIPBOARD.lock().unwrap();
-    if let Err(e) = clipboard.set_image(image_data) {
-        tracing::error!(%e, "Failed to copy image to clipboard");
+    let mut attempts = 0;
+    while attempts < 5 {
+        match clipboard.set_image(image_data.clone()) {
+            Ok(_) => return,
+            Err(e) => {
+                tracing::warn!(%e, attempt = attempts, "Failed to copy image to clipboard, retrying");
+                std::thread::sleep(std::time::Duration::from_millis(50));
+                attempts += 1;
+            }
+        }
     }
+    tracing::error!("Failed to copy image to clipboard after 5 attempts");
 }

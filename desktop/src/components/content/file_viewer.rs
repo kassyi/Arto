@@ -78,7 +78,12 @@ fn use_file_loader(file: PathBuf, html: Signal<String>, mut state: AppState) {
 
             // Try to read as string (UTF-8 text file)
             match tokio::fs::read_to_string(file.as_path()).await {
-                Ok(content) => {
+                Ok(mut content) => {
+                    // Strip UTF-8 BOM if present so the first line can be parsed correctly by markdown
+                    if content.starts_with('\u{FEFF}') {
+                        content.remove(0);
+                    }
+
                     // Check if file has markdown extension
                     if is_markdown_file(&file) {
                         // Render as markdown with TOC heading extraction

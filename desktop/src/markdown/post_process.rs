@@ -92,16 +92,15 @@ fn post_process_html_impl(
                             && !src.starts_with("https://")
                             && !src.starts_with("data:")
                         {
-                            let absolute_path = canonical_base.join(&src);
+                            // Decode URL-encoded characters (like %5C for \ and %20 for space) 
+                            // because pulldown-cmark automatically URL-encodes the src attribute.
+                            let decoded_src = percent_encoding::percent_decode_str(&src).decode_utf8_lossy().to_string();
+                            let normalized_src = decoded_src.replace('\\', "/");
+                            let _ = el.set_attribute("src", &normalized_src);
+
+                            let absolute_path = canonical_base.join(&normalized_src);
                             if let Ok(canonical_path) = absolute_path.canonicalize() {
-                                // Path traversal prevention: only allow files within base_dir
-                                if !canonical_path.starts_with(&canonical_base) {
-                                    tracing::warn!(
-                                        ?src,
-                                        "Image path escapes base directory, skipping"
-                                    );
-                                    return Ok(());
-                                }
+                                // Allow path traversals and absolute paths for local Desktop app
                                 if let Ok(image_data) = std::fs::read(&canonical_path) {
                                     let mime_type = get_mime_type(&canonical_path);
                                     let base64_data = general_purpose::STANDARD.encode(&image_data);
@@ -117,14 +116,35 @@ fn post_process_html_impl(
                 // Process anchor tags: convert markdown links to spans
                 element!("a[href]", |el| {
                     if let Some(href) = el.get_attribute("href") {
+                        // Hash-only anchors (e.g. `#fn-1` for footnotes) must be rewritten
+                        // to a <span> so WebView2 doesn't treat them as navigation events
+                        // and open an external browser. JS will handle the scrolling.
+                        if href.starts_with('#') {
+                            let target_id = href.trim_start_matches('#').to_string();
+                            el.set_tag_name("span")?;
+                            el.remove_attribute("href");
+                            el.set_attribute("data-hash-link", &target_id)?;
+                            // Preserve the existing class if any, and append our styling class
+                            let existing_class = el.get_attribute("class").unwrap_or_default();
+                            let new_class = if existing_class.is_empty() {
+                                "footnote-reference-link".to_string()
+                            } else {
+                                format!("{existing_class} footnote-reference-link")
+                            };
+                            el.set_attribute("class", &new_class)?;
+                            return Ok(());
+                        }
+
                         if !href.starts_with("http://") && !href.starts_with("https://") {
-                            if let Some(ext) = std::path::Path::new(&href)
+                            let decoded_href = percent_encoding::percent_decode_str(&href).decode_utf8_lossy().to_string();
+                            let normalized_href = decoded_href.replace('\\', "/");
+                            if let Some(ext) = std::path::Path::new(&normalized_href)
                                 .extension()
                                 .and_then(|e| e.to_str())
                             {
                                 el.set_tag_name("span")?;
                                 el.remove_attribute("href");
-                                el.set_attribute("data-md-link", &href)?;
+                                el.set_attribute("data-md-link", &normalized_href)?;
                                 if ext != "md" && ext != "markdown" {
                                     el.set_attribute("class", "md-link md-link-invalid")?;
                                 } else {
@@ -163,10 +183,9 @@ mod tests {
     // If behavior is intentionally changed, update both the code and these tests.
     // ========================================================================
 
-    /// Path traversal images must NOT be converted to data URLs.
-    /// The base_dir boundary check prevents reading files outside base_dir.
+    /// Path traversal images should be converted to data URLs for local desktop readers.
     #[test]
-    fn test_path_traversal_img_src_blocked() {
+    fn test_path_traversal_img_src_allowed() {
         let temp = TempDir::new().unwrap();
         let sub = temp.path().join("sub");
         fs::create_dir(&sub).unwrap();
@@ -177,15 +196,10 @@ mod tests {
         let html = r#"<img src="../secret.png">"#;
         let result = post_process_html_tags(html, &sub, &[]);
 
-        // Path traversal should be blocked: image NOT converted to data URL
+        // Path traversal should be allowed for desktop: image converted to data URL
         assert!(
-            !result.contains("data:image/png;base64,"),
-            "Path-traversal images must not be converted to data URLs: {result}"
-        );
-        // Original src should remain unchanged
-        assert!(
-            result.contains(r#"src="../secret.png""#),
-            "Original src attribute should be preserved: {result}"
+            result.contains("data:image/png;base64,"),
+            "Path-traversal images must be converted to data URLs for desktop: {result}"
         );
     }
 
@@ -450,6 +464,42 @@ mod tests {
         assert!(
             result.contains("Title"),
             "Should still render heading text: {result}"
+        );
+    }
+
+    #[test]
+    fn test_pulldown_cmark_footnote_format() {
+        // Print raw pulldown-cmark footnote HTML to understand ID format
+        let markdown = r#"Text with a footnote[^1] and another[^2].
+
+[^1]: First footnote.
+[^2]: Second footnote.
+"#;
+        let options = pulldown_cmark::Options::all();
+        let parser = pulldown_cmark::Parser::new_ext(markdown, options);
+        let mut raw_html = String::new();
+        pulldown_cmark::html::push_html(&mut raw_html, parser);
+
+        println!("=== RAW pulldown-cmark footnote HTML ===");
+        println!("{}", raw_html);
+
+        // Verify our post-processor converts hash links to spans
+        let processed = post_process_html_tags(&raw_html, Path::new("."), &[]);
+        println!("=== POST-PROCESSED HTML ===");
+        println!("{}", processed);
+
+        // The processed HTML should contain data-hash-link spans instead of <a href="#...">
+        assert!(
+            processed.contains("data-hash-link"),
+            "Hash-anchors should be rewritten to spans with data-hash-link: {processed}"
+        );
+        assert!(
+            !processed.contains("href=\"#"),
+            "No href='#...' should remain after post-processing: {processed}"
+        );
+        assert!(
+            processed.contains("footnote-reference-link"),
+            "footnote-reference-link class should be set: {processed}"
         );
     }
 }

@@ -15,7 +15,18 @@ pub fn reveal_in_finder(path: impl AsRef<Path>) {
         }
     }
 
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "windows")]
+    {
+        if let Err(e) = std::process::Command::new("explorer")
+            .arg("/select,")
+            .arg(path.as_os_str())
+            .spawn()
+        {
+            tracing::error!(%e, ?path, "Failed to reveal in Explorer");
+        }
+    }
+
+    #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
     {
         // On other platforms, just open the parent directory
         if let Some(parent) = path.parent() {
