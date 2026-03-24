@@ -50,8 +50,18 @@ fn HeadingItem(heading: HeadingInfo, is_keyboard_focused: bool) -> Element {
                             r#"
                             (() => {{
                                 const el = document.getElementById({id_json});
-                                if (el) {{
-                                    el.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+                                const container = document.querySelector('.content');
+                                if (el && container) {{
+                                    // Calculate target offset
+                                    const containerRect = container.getBoundingClientRect();
+                                    const elRect = el.getBoundingClientRect();
+                                    const targetScroll = container.scrollTop + (elRect.top - containerRect.top);
+                                    
+                                    // Clamp to max possible scroll
+                                    const maxScroll = Math.max(0, container.scrollHeight - container.clientHeight);
+                                    const clampedScrollTop = Math.min(targetScroll, maxScroll);
+                                    
+                                    container.scrollTo({{ top: clampedScrollTop, behavior: 'smooth' }});
                                 }}
                             }})();
                             "#,
