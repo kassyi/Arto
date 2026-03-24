@@ -27,6 +27,7 @@
 @import url("./components/content.css");
 @import url("./components/content/code-copy.css");
 @import url("./components/content/content-cursor.css");
+@import url("./components/footnote-popover.css");
 
 /* Special windows */
 @import url("./components/preferences.css");
