@@ -111,8 +111,6 @@ pub fn ContentContextMenu(props: ContentContextMenuProps) -> Element {
         // Backdrop to close menu on outside click
         div {
             class: "context-menu-backdrop",
-            // Prevent mousedown from clearing text selection
-            onmousedown: move |evt| evt.prevent_default(),
             onclick: move |_| {
                 props.on_close.call(());
             },
@@ -122,8 +120,6 @@ pub fn ContentContextMenu(props: ContentContextMenuProps) -> Element {
         div {
             class: "context-menu content-context-menu",
             style: "left: {props.position.0}px; top: {props.position.1}px;",
-            // Prevent mousedown from clearing text selection
-            onmousedown: move |evt| evt.prevent_default(),
             onclick: move |evt| evt.stop_propagation(),
 
             // === Section 1: Smart default copy operations ===
@@ -188,8 +184,9 @@ pub fn ContentContextMenu(props: ContentContextMenuProps) -> Element {
                             let src = src.clone();
                             spawn(async move {
                                 crate::keybindings::dispatcher::copy_image_from_src(src, false).await;
+                                crate::keybindings::dispatcher::show_action_feedback("Copied");
+                                on_close.call(());
                             });
-                            on_close.call(());
                         }
                     },
                 }
@@ -204,8 +201,7 @@ pub fn ContentContextMenu(props: ContentContextMenuProps) -> Element {
                     on_click: {
                         let on_close = props.on_close;
                         move |_| {
-                            copy_special_block_image(is_mermaid, false);
-                            on_close.call(());
+                            copy_special_block_image(is_mermaid, false, on_close);
                         }
                     },
                 }
@@ -237,8 +233,18 @@ pub fn ContentContextMenu(props: ContentContextMenuProps) -> Element {
                 on_click: {
                     let on_close = props.on_close;
                     move |_| {
-                        exec_edit_command("selectAll");
-                        on_close.call(());
+                        spawn(async move {
+                            let js = r#"
+                                const selection = window.getSelection();
+                                const range = document.createRange();
+                                const content = document.querySelector('.markdown-body') || document.body;
+                                range.selectNodeContents(content);
+                                selection.removeAllRanges();
+                                selection.addRange(range);
+                            "#;
+                            let _ = document::eval(js).await;
+                            on_close.call(());
+                        });
                     }
                 },
             }
@@ -250,8 +256,26 @@ pub fn ContentContextMenu(props: ContentContextMenuProps) -> Element {
                 on_click: {
                     let on_close = props.on_close;
                     move |_| {
-                        dispatch_action(&Action::SearchOpen, state);
-                        on_close.call(());
+                        let mut state = state;
+                        spawn(async move {
+                            let js = r#"
+                                (() => {
+                                    const s = window.getSelection();
+                                    dioxus.send(s ? s.toString() : "");
+                                })()
+                            "#;
+                            let mut eval = document::eval(js);
+                            if let Ok(text) = eval.recv::<String>().await {
+                                if !text.trim().is_empty() {
+                                    state.open_search_with_text(Some(text));
+                                } else {
+                                    state.open_search_with_text(None);
+                                }
+                            } else {
+                                state.open_search_with_text(None);
+                            }
+                            on_close.call(());
+                        });
                     }
                 },
             }
@@ -344,7 +368,10 @@ pub fn ContentContextMenu(props: ContentContextMenuProps) -> Element {
                             let on_close = props.on_close;
                             move |_| {
                                 dispatch_action(&Action::FileSaveImageAs, state);
-                                on_close.call(());
+                                spawn(async move {
+                                    tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+                                    on_close.call(());
+                                });
                             }
                         },
                     }
@@ -357,8 +384,13 @@ pub fn ContentContextMenu(props: ContentContextMenuProps) -> Element {
                         on_click: {
                             let on_close = props.on_close;
                             move |_| {
+                                // For now, special blocks don't save easily via simple dialogs,
+                                // but we invoke the same rasteriser action
                                 dispatch_action(&Action::FileSaveImageAs, state);
-                                on_close.call(());
+                                spawn(async move {
+                                    tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+                                    on_close.call(());
+                                });
                             }
                         },
                     }
@@ -370,7 +402,7 @@ pub fn ContentContextMenu(props: ContentContextMenuProps) -> Element {
 }
 
 /// Copy a Mermaid or Math block as an image using saved element references.
-fn copy_special_block_image(is_mermaid: bool, opaque: bool) {
+fn copy_special_block_image(is_mermaid: bool, opaque: bool, on_close: EventHandler<()>) {
     let kind = if is_mermaid {
         "mermaidBlock"
     } else {
@@ -386,15 +418,16 @@ fn copy_special_block_image(is_mermaid: bool, opaque: bool) {
             crate::utils::clipboard::copy_image_from_data_url(&data_url);
             crate::keybindings::dispatcher::show_action_feedback("Copied");
         }
+        on_close.call(());
     });
 }
 
-/// Copy markdown source from file using pre-captured line range and selected text.
 fn copy_markdown_source_direct(
     file: std::path::PathBuf,
     source_line: u32,
     source_line_end: u32,
     selected_text: String,
+    on_close: EventHandler<()>,
 ) {
     spawn(async move {
         let handle = std::thread::spawn(move || {
@@ -421,6 +454,7 @@ fn copy_markdown_source_direct(
             }
             Err(_) => tracing::debug!("Source extraction thread panicked"),
         }
+        on_close.call(());
     });
 }
 
@@ -435,9 +469,3 @@ fn copy_path_shortcut_action_str(
     }
 }
 
-fn exec_edit_command(command: &'static str) {
-    spawn(async move {
-        let js = format!("document.execCommand('{command}');");
-        let _ = document::eval(&js).await;
-    });
-}
