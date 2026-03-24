@@ -46,6 +46,7 @@ pub(super) fn CopyCodeAsSubmenu(
                         let file = current_file.clone().unwrap();
                         let start = block_source_line.unwrap();
                         let end = block_source_line_end.unwrap();
+                        let on_close = on_close;
                         move |_| {
                             // Extract whole block source (no selected_text)
                             super::copy_markdown_source_direct(
@@ -53,8 +54,8 @@ pub(super) fn CopyCodeAsSubmenu(
                                 start,
                                 end,
                                 String::new(),
+                                on_close,
                             );
-                            on_close.call(());
                         }
                     },
                 }
