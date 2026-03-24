@@ -62,7 +62,9 @@ async function renderDiagram(element: HTMLElement): Promise<void> {
 
   try {
     // Generate a unique ID for this diagram
-    const id = `mermaid-${crypto.randomUUID()}`;
+    // Avoid crypto.randomUUID() because custom protocol schemes (like arto://)
+    // on Windows WebView2 are not always considered secure contexts.
+    const id = `mermaid-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
 
     // Render the diagram inside the target element so Mermaid measures
     // text in the same CSS context where the SVG will be displayed.
