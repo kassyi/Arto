@@ -1,3 +1,5 @@
+import { scrollIntoViewClamped } from "./scroll-controller";
+
 /**
  * Pinned search definition from Rust.
  */
@@ -226,7 +228,7 @@ function navigateToMatch(direction: "next" | "prev"): number {
   // Add active class to new current and scroll into view
   const next = state.highlightElements[state.currentIndex];
   next?.classList.add("search-highlight-active");
-  next?.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (next) scrollIntoViewClamped(next, "center");
 
   return state.currentIndex + 1; // 1-based for display
 }
@@ -342,7 +344,7 @@ export function navigateTo(index: number): void {
   state.currentIndex = index;
   const target = state.highlightElements[index];
   target?.classList.add("search-highlight-active");
-  target?.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (target) scrollIntoViewClamped(target, "center");
 
   // Notify callback with unified format
   const newCurrent = index + 1;
@@ -390,7 +392,7 @@ export function scrollToPinnedMatch(pinnedId: string, index: number): void {
   }
 
   const target = elements[index];
-  target?.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (target) scrollIntoViewClamped(target, "center");
 
   // Brief highlight effect
   target?.classList.add("pinned-highlight-flash");

@@ -9,6 +9,8 @@
  * This handler finds those spans and attaches scroll/popover behavior.
  */
 
+import { scrollIntoViewClamped } from "./scroll-controller";
+
 const POPOVER_ID = "arto-footnote-popover";
 const HIGHLIGHT_CLASS = "footnote-highlight";
 const HIGHLIGHT_TIMEOUT_MS = 2000;
@@ -98,7 +100,7 @@ export function setupFootnotes(container: HTMLElement): void {
         });
       } else {
         // Fallback
-        targetDef.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        scrollIntoViewClamped(targetDef, "nearest");
       }
 
       // Flash highlight
