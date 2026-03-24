@@ -46,6 +46,16 @@ fn read_sorted_entries(path: &PathBuf) -> Vec<FileEntry> {
                             return None;
                         }
                     };
+
+                    #[cfg(target_os = "windows")]
+                    if let Ok(metadata) = e.metadata() {
+                        use std::os::windows::fs::MetadataExt;
+                        // FILE_ATTRIBUTE_HIDDEN is 0x2
+                        if (metadata.file_attributes() & 0x2) != 0 {
+                            return None;
+                        }
+                    }
+
                     // For symlinks, follow with metadata() to resolve actual type
                     let is_dir = if file_type.is_symlink() {
                         match fs::metadata(e.path()) {
@@ -94,10 +104,7 @@ pub fn FileExplorer(on_pin_toggle: Option<EventHandler<()>>) -> Element {
                 DirectoryNavigation { current_dir: root.clone(), refresh_counter, on_pin_toggle }
                 DirectoryTree { path: root, refresh_counter }
             } else {
-                div {
-                    class: "left-sidebar-explorer-empty",
-                    "No directory open"
-                }
+                EmptySidebarView {}
             }
 
             // Quick Access section (fixed at bottom)
@@ -259,6 +266,9 @@ fn DirectoryNavigation(
                 // Show root indicator when at filesystem root
                 div {
                     class: "left-sidebar-header-nav root-indicator",
+                    onclick: move |_| {
+                        state.go_to_parent_directory();
+                    },
 
                     div {
                         class: "left-sidebar-header-content",
@@ -269,7 +279,7 @@ fn DirectoryNavigation(
                         }
                         span {
                             class: "left-sidebar-header-label",
-                            "/"
+                            "PC"
                         }
 
                         // Bookmark button - outside actions div for independent visibility
@@ -780,4 +790,85 @@ fn use_directory_watcher(directory: Option<PathBuf>, mut refresh_counter: Signal
             let _ = tx.send(());
         }
     });
+}
+
+#[cfg(target_os = "windows")]
+#[component]
+fn LogicalDrivesView() -> Element {
+    let mut state = use_context::<AppState>();
+    
+    // Get all valid drives
+    let mut drives = Vec::new();
+    for drive in b'A'..=b'Z' {
+        let drive_str = format!("{}:\\", drive as char);
+        if std::path::Path::new(&drive_str).exists() {
+            drives.push(drive_str);
+        }
+    }
+
+    rsx! {
+        div {
+            class: "left-sidebar-tree",
+            div {
+                class: "left-sidebar-header",
+                style: "padding-left: 10px; margin-bottom: 5px;",
+                div {
+                    class: "left-sidebar-header-nav root-indicator",
+                    div {
+                        class: "left-sidebar-header-content",
+                        Icon {
+                            name: IconName::Server,
+                            size: 16,
+                            class: "left-sidebar-header-icon",
+                        }
+                        span {
+                            class: "left-sidebar-header-label",
+                            "PC"
+                        }
+                    }
+                }
+            }
+            for drive in drives {
+                div {
+                    class: "left-sidebar-tree-node",
+                    div {
+                        class: "left-sidebar-tree-node-content",
+                        style: "padding-left: 15px;",
+                        onclick: {
+                            let drive = drive.clone();
+                            move |_| {
+                                state.set_root_directory(&std::path::PathBuf::from(&drive));
+                            }
+                        },
+                        span {
+                            class: "left-sidebar-tree-dir-link",
+                            Icon {
+                                name: IconName::Server,
+                                size: 16,
+                                class: "left-sidebar-tree-icon",
+                            }
+                            span {
+                                class: "left-sidebar-tree-label",
+                                "{drive}"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn EmptySidebarView() -> Element {
+    #[cfg(target_os = "windows")]
+    return rsx! { LogicalDrivesView {} };
+
+    #[cfg(not(target_os = "windows"))]
+    return rsx! {
+        div {
+            class: "left-sidebar-explorer-empty",
+            "No directory open"
+        }
+    };
 }

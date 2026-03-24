@@ -13,6 +13,9 @@ pub struct Sidebar {
     pub width: f64,
     pub show_all_files: bool,
     pub zoom_level: f64,
+    /// True while a context menu is open for this sidebar.
+    /// When set, the auto-hide timer on the overlay sidebar is suppressed.
+    pub context_menu_active: bool,
     /// History of root directory navigation.
     ///
     /// This history is intentionally kept in-memory only and is not persisted
@@ -31,6 +34,7 @@ impl Default for Sidebar {
             width: 280.0,
             show_all_files: false,
             zoom_level: 1.0,
+            context_menu_active: false,
             dir_history: HistoryManager::new(),
         }
     }

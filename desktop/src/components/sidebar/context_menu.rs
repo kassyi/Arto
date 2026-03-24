@@ -32,6 +32,20 @@ pub fn SidebarContextMenu(
     let mut show_submenu = use_signal(|| false);
     let shortcut = |action| shortcut_hint_for_context_action(KeyContext::Sidebar, action);
 
+    let mut state = use_context::<crate::state::AppState>();
+
+    use_hook(move || {
+        state.sidebar.write().context_menu_active = true;
+    });
+
+    use_drop(move || {
+        state.sidebar.write().context_menu_active = false;
+        // Optionally, reset hover flags if the mouse is outside
+        if !state.sidebar.read().pinned {
+            // Keep hover active momentarily so the normal onmouseleave timer can handle it if needed
+        }
+    });
+
     let is_file = kind == SidebarItemKind::File;
     let is_bookmarked = BOOKMARKS.read().contains(&path);
 
@@ -56,7 +70,7 @@ pub fn SidebarContextMenu(
 
         // Context menu
         div {
-            class: "context-menu",
+            class: "context-menu sidebar-context-menu",
             style: "left: {position.0}px; top: {position.1}px;",
             onclick: move |evt| evt.stop_propagation(),
 
