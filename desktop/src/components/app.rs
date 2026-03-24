@@ -562,6 +562,9 @@ pub fn App(
                     },
                 }
             }
+
+            // Left Sidebar context menu (hoisted to App level to avoid overflow clipping)
+            crate::components::sidebar::context_menu::SidebarContextMenuRoot {}
         }
     }
 }

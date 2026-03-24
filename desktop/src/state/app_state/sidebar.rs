@@ -3,6 +3,7 @@ use crate::history::HistoryManager;
 use dioxus::prelude::*;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+use crate::components::sidebar::context_menu::SidebarContextMenuData;
 
 /// Represents the state of the sidebar file explorer
 #[derive(Debug, Clone, PartialEq)]
@@ -13,6 +14,11 @@ pub struct Sidebar {
     pub width: f64,
     pub show_all_files: bool,
     pub zoom_level: f64,
+    /// True while a context menu is open for this sidebar.
+    /// When set, the auto-hide timer on the overlay sidebar is suppressed.
+    pub context_menu_active: bool,
+    /// Data for the hoisted context menu. Hovered item data is placed here to render at root.
+    pub context_menu_data: Option<SidebarContextMenuData>,
     /// History of root directory navigation.
     ///
     /// This history is intentionally kept in-memory only and is not persisted
@@ -31,6 +37,8 @@ impl Default for Sidebar {
             width: 280.0,
             show_all_files: false,
             zoom_level: 1.0,
+            context_menu_active: false,
+            context_menu_data: None,
             dir_history: HistoryManager::new(),
         }
     }
