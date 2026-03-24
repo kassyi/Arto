@@ -37,15 +37,15 @@ pub(super) fn CopyAsSubmenu(
                         let file = current_file.clone().unwrap();
                         let start = source_line.unwrap();
                         let end = source_line_end.unwrap_or(start);
-                        let selected_text = selected_text.clone();
+                        let on_close = on_close;
                         move |_| {
                             super::copy_markdown_source_direct(
                                 file.clone(),
                                 start,
                                 end,
                                 selected_text.clone(),
+                                on_close,
                             );
-                            on_close.call(());
                         }
                     },
                 }
