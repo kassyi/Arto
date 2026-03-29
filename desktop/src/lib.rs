@@ -11,6 +11,7 @@ mod hooks;
 pub mod ipc;
 mod keybindings;
 mod markdown;
+#[cfg(target_os = "macos")]
 mod menu;
 mod pinned_search;
 mod shortcut;
@@ -124,7 +125,7 @@ pub fn run(invocation: cli::CliInvocation) -> RunResult {
     );
     #[cfg(target_os = "macos")]
     let config = config.with_menu(crate::menu::build_menu());
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "windows")]
     let config = config.with_menu(None);
 
     // Launch MainApp (first window only)

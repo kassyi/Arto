@@ -13,3 +13,5 @@ pub mod search_bar;
 pub mod sidebar;
 pub mod tab;
 pub mod theme_selector;
+#[cfg(target_os = "windows")]
+pub mod win_hamburger;
