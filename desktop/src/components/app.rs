@@ -7,7 +7,7 @@ mod shortcut_overlay;
 
 use dioxus::desktop::tao::dpi::{LogicalPosition, LogicalSize};
 use dioxus::desktop::tao::event::{DeviceEvent, ElementState, Event as TaoEvent, WindowEvent};
-#[cfg(target_os = "macos")]
+#[cfg(not(target_os = "windows"))]
 use dioxus::desktop::use_muda_event_handler;
 use dioxus::desktop::{use_wry_event_handler, window};
 use dioxus::document;
@@ -27,7 +27,7 @@ use super::tab::TabBar;
 use crate::assets::MAIN_SCRIPT;
 use crate::drag;
 use crate::events::{ActiveDragUpdate, ACTIVE_DRAG_UPDATE};
-#[cfg(target_os = "macos")]
+#[cfg(not(target_os = "windows"))]
 use crate::menu;
 use crate::state::{AppState, PersistedState, Tab};
 use crate::theme::Theme;
@@ -145,7 +145,7 @@ pub fn App(
     setup_keybinding_engine(state, shortcut_overlay_visibility);
 
     // Handle menu events (only state-dependent events, not global ones)
-    #[cfg(target_os = "macos")]
+    #[cfg(not(target_os = "windows"))]
     use_muda_event_handler(move |event| {
         // Only handle state-dependent events
         menu::handle_menu_event_with_state(event, &mut state);

@@ -51,7 +51,7 @@ pub use child::{
     close_child_windows_for_last_focused, close_child_windows_for_parent,
     open_or_focus_image_window, open_or_focus_math_window, open_or_focus_mermaid_window,
 };
-#[cfg(target_os = "macos")]
+#[cfg(not(target_os = "windows"))]
 pub use main::has_any_main_windows;
 pub use main::{
     close_all_main_windows, create_main_window_config, create_main_window_sync,

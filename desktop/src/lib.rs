@@ -11,7 +11,7 @@ mod hooks;
 pub mod ipc;
 mod keybindings;
 mod markdown;
-#[cfg(target_os = "macos")]
+#[cfg(not(target_os = "windows"))]
 mod menu;
 mod pinned_search;
 mod shortcut;
@@ -123,7 +123,7 @@ pub fn run(invocation: cli::CliInvocation) -> RunResult {
             }
         },
     );
-    #[cfg(target_os = "macos")]
+    #[cfg(not(target_os = "windows"))]
     let config = config.with_menu(crate::menu::build_menu());
     #[cfg(target_os = "windows")]
     let config = config.with_menu(None);
