@@ -1,6 +1,7 @@
 use crate::ipc::OpenEvent;
 use crate::state::Tab;
 use crate::window::settings;
+#[cfg(not(target_os = "windows"))]
 use dioxus::desktop::use_muda_event_handler;
 use dioxus::desktop::{window, WindowCloseBehaviour};
 use dioxus::prelude::*;
@@ -34,6 +35,7 @@ pub fn MainApp() -> Element {
     });
 
     // Set up global menu event handling
+    #[cfg(not(target_os = "windows"))]
     use_muda_event_handler(move |event| {
         crate::menu::handle_menu_event_global(event);
     });

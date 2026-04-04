@@ -5,9 +5,14 @@ use crate::components::icon::{Icon, IconName};
 use crate::components::theme_selector::ThemeSelector;
 use crate::state::AppState;
 
+#[cfg(target_os = "windows")]
+use crate::components::win_hamburger::WindowsMenu;
+
 #[component]
 pub fn Header() -> Element {
     let mut state = use_context::<AppState>();
+
+    let mut is_menu_open = use_signal(|| false);
 
     let current_tab = state.current_tab();
     let file_path = current_tab.as_ref().and_then(|tab| tab.file());
@@ -55,13 +60,45 @@ pub fn Header() -> Element {
     // Copy feedback state
     let mut is_copied = use_signal(|| false);
 
+    let menu_overlay = {
+        #[cfg(target_os = "windows")]
+        {
+            if *is_menu_open.read() {
+                rsx! {
+                    WindowsMenu {
+                        on_close: move |_| is_menu_open.set(false),
+                    }
+                }
+            } else {
+                rsx! {}
+            }
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            rsx! {}
+        }
+    };
+
     rsx! {
         div {
             class: "header",
+            style: "position: relative;",
 
             // File name display (left side) with navigation buttons
             div {
                 class: "header-left",
+
+                    // Hamburger Menu Button
+                    if cfg!(target_os = "windows") {
+                        button {
+                            class: "nav-button hamburger-button",
+                            class: if *is_menu_open.read() { "active" },
+                            title: "Menu",
+                            onclick: move |_| is_menu_open.toggle(),
+                            Icon { name: IconName::Menu2 }
+                        }
+                    }
+
 
                 // Back button
                 button {
@@ -155,6 +192,9 @@ pub fn Header() -> Element {
                 // Theme selector
                 ThemeSelector { current_theme: state.current_theme }
             }
+
+            {menu_overlay}
+
         }
     }
 }

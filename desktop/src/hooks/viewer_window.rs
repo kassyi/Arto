@@ -1,6 +1,8 @@
+#[cfg(not(target_os = "windows"))]
+use dioxus::desktop::use_muda_event_handler;
 /// Common hooks for specialized viewer windows (Mermaid, Math, Image).
 /// Provides reusable functionality for window lifecycle and zoom synchronization.
-use dioxus::desktop::{use_muda_event_handler, window};
+use dioxus::desktop::window;
 use dioxus::prelude::*;
 
 use crate::assets::MAIN_SCRIPT;
@@ -25,6 +27,7 @@ fn is_close_shortcut(key: &str, meta_key: bool, ctrl_key: bool, alt_key: bool) -
 /// Handle Cmd+W and Cmd+Shift+W to close the viewer window.
 /// Call this in viewer window components to enable standard window close shortcuts.
 pub fn use_window_close_handler() {
+    #[cfg(not(target_os = "windows"))]
     use_muda_event_handler(move |event| {
         if !window().is_focused() {
             return;

@@ -11,6 +11,7 @@ mod hooks;
 pub mod ipc;
 mod keybindings;
 mod markdown;
+#[cfg(not(target_os = "windows"))]
 mod menu;
 mod pinned_search;
 mod shortcut;
@@ -61,13 +62,13 @@ pub fn run(invocation: cli::CliInvocation) -> RunResult {
         ipc::push_event(event);
     }
 
-    let menu = menu::build_menu();
+    // let menu = menu::build_menu();
 
     // Get window parameters for first window from preferences
     let params = window::CreateMainWindowConfigParams::from_preferences(true);
 
-    let config = window::create_main_window_config(&params)
-        .with_custom_event_handler(move |event, _target| {
+    let config = window::create_main_window_config(&params).with_custom_event_handler(
+        move |event, _target| {
             match event {
                 Event::Opened { urls, .. } => {
                     // Handle file/directory open events from Finder
@@ -120,8 +121,12 @@ pub fn run(invocation: cli::CliInvocation) -> RunResult {
                 }
                 _ => {}
             }
-        })
-        .with_menu(menu);
+        },
+    );
+    #[cfg(not(target_os = "windows"))]
+    let config = config.with_menu(crate::menu::build_menu());
+    #[cfg(target_os = "windows")]
+    let config = config.with_menu(None);
 
     // Launch MainApp (first window only)
     // MainApp pops the first CLI event from IPC queue for its initial tab.

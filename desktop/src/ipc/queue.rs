@@ -1,7 +1,9 @@
 use super::protocol::OpenEvent;
 use parking_lot::Mutex;
 use std::collections::VecDeque;
-use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
+#[cfg(unix)]
+use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, AtomicI32};
 use std::sync::OnceLock;
 
 // ============================================================================
@@ -27,6 +29,7 @@ fn get_event_queue() -> &'static Mutex<VecDeque<OpenEvent>> {
     IPC_EVENT_QUEUE.get_or_init(|| Mutex::new(VecDeque::new()))
 }
 
+#[cfg(unix)]
 pub(super) fn request_shutdown(signal: i32) {
     let was_requested = SHUTDOWN_REQUESTED.swap(true, Ordering::SeqCst);
     if was_requested {
