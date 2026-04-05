@@ -796,7 +796,7 @@ fn use_directory_watcher(directory: Option<PathBuf>, mut refresh_counter: Signal
 #[component]
 fn LogicalDrivesView() -> Element {
     let mut state = use_context::<AppState>();
-    
+
     // Get all valid drives
     let mut drives = Vec::new();
     for drive in b'A'..=b'Z' {
