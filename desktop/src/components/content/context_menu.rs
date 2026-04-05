@@ -468,4 +468,3 @@ fn copy_path_shortcut_action_str(
         _ => "clipboard.copy_file_path",
     }
 }
-

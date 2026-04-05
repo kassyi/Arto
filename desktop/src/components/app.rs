@@ -122,7 +122,7 @@ pub fn App(
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
             .as_millis();
-        
+
         spawn(async move {
             let _ = document::eval(&format!(
                 r#"
