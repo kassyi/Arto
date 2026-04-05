@@ -1,4 +1,3 @@
-
 use dioxus::prelude::*;
 use std::cmp::Ordering;
 use std::fs;
@@ -444,7 +443,7 @@ fn FileTreeNode(
             evt.prevent_default();
             evt.stop_propagation();
             let mouse_data = evt.data();
-            
+
             let mut sidebar = state.sidebar.write();
             sidebar.context_menu_data = Some(
                 crate::components::sidebar::context_menu::SidebarContextMenuData {
@@ -453,9 +452,13 @@ fn FileTreeNode(
                         mouse_data.client_coordinates().y as i32,
                     ),
                     path: path.clone(),
-                    kind: if is_dir { SidebarItemKind::Directory } else { SidebarItemKind::File },
+                    kind: if is_dir {
+                        SidebarItemKind::Directory
+                    } else {
+                        SidebarItemKind::File
+                    },
                     refresh_counter,
-                }
+                },
             );
 
             tracing::trace!(?path, "Context menu opened");

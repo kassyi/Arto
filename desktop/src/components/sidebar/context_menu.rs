@@ -230,7 +230,7 @@ fn ContextMenuSeparator() -> Element {
 #[component]
 pub fn SidebarContextMenuRoot() -> Element {
     let mut state = use_context::<crate::state::AppState>();
-    
+
     // Evaluate other_windows on mount of the context menu.
     // When context_menu_data becomes Some, this component will mount and evaluate this.
     let other_windows = {
@@ -248,7 +248,7 @@ pub fn SidebarContextMenuRoot() -> Element {
     if let Some(data) = menu_data {
         let is_dir = data.kind == SidebarItemKind::Directory;
         let path = data.path.clone();
-        
+
         let on_close = move |_| {
             state.sidebar.write().context_menu_data = None;
         };
