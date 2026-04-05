@@ -250,9 +250,7 @@ mod tests {
 
     // Re-import protocol types used by tests
     use protocol::IpcMessage;
-    use socket::is_address_in_use;
-    #[cfg(unix)]
-    use socket::{get_socket_path, SOCKET_NAME};
+    use socket::{get_socket_path, is_address_in_use, SOCKET_NAME};
 
     #[test]
     fn test_ipc_message_open_serialization() {
