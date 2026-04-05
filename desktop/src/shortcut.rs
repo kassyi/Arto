@@ -416,7 +416,11 @@ mod tests {
     #[test]
     fn parse_with_modifiers() {
         let seq = ShortcutSequence::from_str("Ctrl+Shift+g").unwrap();
-        let expected_ctrl = if cfg!(target_os = "macos") { Modifiers::CONTROL } else { Modifiers::META };
+        let expected_ctrl = if cfg!(target_os = "macos") {
+            Modifiers::CONTROL
+        } else {
+            Modifiers::META
+        };
         assert_eq!(
             seq.chords,
             vec![KeyChord {
@@ -429,7 +433,11 @@ mod tests {
     #[test]
     fn parse_sequence() {
         let seq = ShortcutSequence::from_str("g Ctrl+g").unwrap();
-        let expected_ctrl = if cfg!(target_os = "macos") { Modifiers::CONTROL } else { Modifiers::META };
+        let expected_ctrl = if cfg!(target_os = "macos") {
+            Modifiers::CONTROL
+        } else {
+            Modifiers::META
+        };
         assert_eq!(
             seq.chords,
             vec![
@@ -470,7 +478,11 @@ mod tests {
     #[test]
     fn parse_cmd_key() {
         let seq = ShortcutSequence::from_str("Cmd+n").unwrap();
-        let expected_mod = if cfg!(target_os = "macos") { Modifiers::META } else { Modifiers::CONTROL };
+        let expected_mod = if cfg!(target_os = "macos") {
+            Modifiers::META
+        } else {
+            Modifiers::CONTROL
+        };
         assert_eq!(
             seq.chords,
             vec![KeyChord {
@@ -501,7 +513,11 @@ mod tests {
     #[test]
     fn parse_symbol_alias() {
         let seq = ShortcutSequence::from_str("Cmd+Equal").unwrap();
-        let expected_mod = if cfg!(target_os = "macos") { Modifiers::META } else { Modifiers::CONTROL };
+        let expected_mod = if cfg!(target_os = "macos") {
+            Modifiers::META
+        } else {
+            Modifiers::CONTROL
+        };
         assert_eq!(
             seq.chords,
             vec![KeyChord {

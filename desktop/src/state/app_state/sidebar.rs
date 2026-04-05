@@ -1,9 +1,9 @@
 use super::AppState;
+use crate::components::sidebar::context_menu::SidebarContextMenuData;
 use crate::history::HistoryManager;
 use dioxus::prelude::*;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
-use crate::components::sidebar::context_menu::SidebarContextMenuData;
 
 /// Represents the state of the sidebar file explorer
 #[derive(Debug, Clone, PartialEq)]
