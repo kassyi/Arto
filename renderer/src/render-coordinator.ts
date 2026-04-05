@@ -2,7 +2,6 @@ import * as mathRenderer from "./math-renderer";
 import * as mermaidRenderer from "./mermaid-renderer";
 import * as syntaxHighlighter from "./syntax-highlighter";
 import * as codeCopy from "./code-copy";
-import * as footnoteHandler from "./footnote-handler";
 
 /**
  * Setup single-click listeners for Image blocks.
@@ -165,7 +164,6 @@ class RenderCoordinator {
             // Re-add copy buttons after Mermaid re-render
             codeCopy.addCopyButtons(markdownBody);
             setupSpecialBlockListeners(markdownBody);
-            footnoteHandler.setupFootnotes(markdownBody as HTMLElement);
           }),
         );
         console.debug("RenderCoordinator: Mermaid re-render completed");
@@ -197,7 +195,6 @@ class RenderCoordinator {
           await mermaidRenderer.renderDiagrams(markdownBody);
           codeCopy.addCopyButtons(markdownBody);
           setupSpecialBlockListeners(markdownBody);
-          footnoteHandler.setupFootnotes(markdownBody as HTMLElement);
         }),
       );
       console.debug("RenderCoordinator: Batch render completed");
