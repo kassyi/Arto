@@ -92,9 +92,11 @@ fn post_process_html_impl(
                             && !src.starts_with("https://")
                             && !src.starts_with("data:")
                         {
-                            // Decode URL-encoded characters (like %5C for \ and %20 for space) 
+                            // Decode URL-encoded characters (like %5C for \ and %20 for space)
                             // because pulldown-cmark automatically URL-encodes the src attribute.
-                            let decoded_src = percent_encoding::percent_decode_str(&src).decode_utf8_lossy().to_string();
+                            let decoded_src = percent_encoding::percent_decode_str(&src)
+                                .decode_utf8_lossy()
+                                .to_string();
                             let normalized_src = decoded_src.replace('\\', "/");
                             let _ = el.set_attribute("src", &normalized_src);
 
@@ -136,7 +138,9 @@ fn post_process_html_impl(
                         }
 
                         if !href.starts_with("http://") && !href.starts_with("https://") {
-                            let decoded_href = percent_encoding::percent_decode_str(&href).decode_utf8_lossy().to_string();
+                            let decoded_href = percent_encoding::percent_decode_str(&href)
+                                .decode_utf8_lossy()
+                                .to_string();
                             let normalized_href = decoded_href.replace('\\', "/");
                             if let Some(ext) = std::path::Path::new(&normalized_href)
                                 .extension()
