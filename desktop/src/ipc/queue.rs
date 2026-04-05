@@ -1,9 +1,9 @@
 use super::protocol::OpenEvent;
 use parking_lot::Mutex;
 use std::collections::VecDeque;
-use std::sync::atomic::{AtomicBool, AtomicI32};
 #[cfg(unix)]
 use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, AtomicI32};
 use std::sync::OnceLock;
 
 // ============================================================================
