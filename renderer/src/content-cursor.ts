@@ -8,8 +8,6 @@ import { extractTableDelimited, formatTableAsMarkdown } from "./table-utils";
 /// Lazy rescan pattern: before each navigation, verify the current element is
 /// still in the DOM via document.contains(). If stale, rescan from .markdown-body.
 
-import { extractTableDelimited, formatTableAsMarkdown } from "./table-utils";
-
 const CURSOR_CLASS = "content-cursor-active";
 const HOLD_CLASS = "content-cursor-hold";
 
