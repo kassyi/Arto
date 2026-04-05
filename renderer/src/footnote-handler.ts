@@ -94,7 +94,7 @@ export function setupFootnotes(container: HTMLElement): void {
         // Apply a small offset (e.g., 60px) so the footnote isn't cramped against the top bar
         scrollContainer.scrollTo({
           top: Math.max(0, targetTop - 60),
-          behavior: "smooth"
+          behavior: "smooth",
         });
       } else {
         // Fallback
